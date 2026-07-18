@@ -1,0 +1,22 @@
+
+{
+  "short_name": "الحكيم Pro",
+  "name": "الحكيم الذكي Pro AI Doctor",
+  "icons": [
+    {
+      "src": "https://img.icons8.com/fluency/512/health-data.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://img.icons8.com/fluency/192/health-data.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#0F172A",
+  "background_color": "#F0F4F8"
+}
