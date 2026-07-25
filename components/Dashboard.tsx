@@ -27,8 +27,13 @@ const Dashboard: React.FC<DashboardProps> = ({ doctorName, records, onNewCase, o
 
   const getModelDisplayName = (model: string) => {
     switch (model) {
-      case 'gemini-3.1-pro-preview': return 'Gemini 3.1 Pro';
-      case 'gemini-3-flash-preview': return 'Gemini 3 Flash';
+      case 'gemini-3.6-flash': return 'Gemini 3.6 Flash Ultra';
+      case 'gemini-3.5-pro': return 'Gemini 3.5 Pro Advanced';
+      case 'gemini-3.5-flash': return 'Gemini 3.5 Flash Super';
+      case 'gemini-3.1-pro-preview': return 'Gemini 3.1 Pro Ultra';
+      case 'gemini-2.5-pro': return 'Gemini 2.5 Pro Clinical';
+      case 'gemini-2.5-flash': return 'Gemini 2.5 Flash Balanced';
+      case 'gemini-1.5-pro': return 'Gemini 1.5 Pro Long-Context';
       case 'gemini-3.1-flash-lite-preview': return 'Gemini 3.1 Flash Lite';
       case 'gemini-3-pro-image-preview': return 'Gemini 3 Pro Image';
       case 'gemini-3.1-flash-live-preview': return 'Gemini 3.1 Flash Live';

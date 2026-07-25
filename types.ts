@@ -6,8 +6,14 @@ export enum AIPersonality {
 }
 
 export enum ModelType {
-  FLASH = 'gemini-3.5-flash',
   PRO = 'gemini-3.1-pro-preview',
+  FLASH = 'gemini-3.5-flash',
+  FLASH_3_6 = 'gemini-3.6-flash',
+  PRO_3_5 = 'gemini-3.5-pro',
+  FLASH_3_5 = 'gemini-3.5-flash',
+  PRO_2_5 = 'gemini-2.5-pro',
+  FLASH_2_5 = 'gemini-2.5-flash',
+  PRO_1_5 = 'gemini-1.5-pro',
   LITE = 'gemini-3.1-flash-lite-preview',
   IMAGE_PRO = 'gemini-3-pro-image-preview',
   AUDIO_NATIVE = 'gemini-3.1-flash-live-preview'

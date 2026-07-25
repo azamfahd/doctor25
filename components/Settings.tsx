@@ -5,7 +5,7 @@ import {
   Database, CheckCircle2, AlertCircle, Palette, UserCog, HardDrive, 
   RefreshCcw, Cpu, Zap, Globe, Image as ImageIcon,
   Wind, Sliders, Headphones, LogIn, LogOut, UserPlus, ExternalLink, Home,
-  Download, Upload, ChevronDown
+  Download, Upload, ChevronDown, Sparkles, FileText
 } from 'lucide-react';
 import { SystemSettings, ModelType, PatientCase, AIPersonality, ThemeMode } from '../types';
 import { supabase } from '../src/lib/supabase';
@@ -145,54 +145,104 @@ const Settings: React.FC<SettingsProps> = ({ settings, setSettings, onSave, onCl
 
   const models = [
     {
-      id: ModelType.FLASH,
-      name: 'Gemini 3 Flash',
-      desc: 'الأداء الأسرع والأكثر كفاءة للتشخيصات العامة اليومية والمتابعات السريعة.',
+      id: ModelType.PRO,
+      name: 'Gemini 3.1 Pro Ultra (الافتراضي القوي)',
+      desc: 'النموذج الأعلى قوة ودقة واستدلالاً عميقاً للتشخيصات السريرية المعقدة والتشخيص التفريقي المتطور.',
+      icon: Brain,
+      color: 'text-blue-600',
+      bg: 'bg-blue-50',
+      border: 'border-blue-200',
+      caps: ['الافتراضي الأساسي', 'استدلال عميق', 'دقة فائقة', 'مجاني']
+    },
+    {
+      id: ModelType.FLASH_3_6,
+      name: 'Gemini 3.6 Flash Ultra',
+      desc: 'أحدث نماذج جيميناي 3.6 الأسرع والأكثر تطوراً ودقة في معالجة الاستشارات الطبية الفورية والتحليل العميق.',
+      icon: Zap,
+      color: 'text-violet-600',
+      bg: 'bg-violet-50',
+      border: 'border-violet-200',
+      caps: ['إصدار 3.6 الأحدث', 'سرعة فائقة', 'استدلال ذكي', 'مجاني']
+    },
+    {
+      id: ModelType.PRO_3_5,
+      name: 'Gemini 3.5 Pro Advanced',
+      desc: 'نموذج احترافي عالي الدقة موجه للاستدلال السريري المركب واستخراج الأبعاد التشخيصية النادرة.',
+      icon: Sparkles,
+      color: 'text-emerald-600',
+      bg: 'bg-emerald-50',
+      border: 'border-emerald-200',
+      caps: ['إصدار 3.5 Pro', 'تحليل متعمق', 'دقة علمية', 'مجاني']
+    },
+    {
+      id: ModelType.FLASH_3_5,
+      name: 'Gemini 3.5 Flash Super',
+      desc: 'الأحدث والأسرع في الاستجابة مع ذكاء فائق لتحليل الاستشارات الطبية اليومية بنطاق زمني فوري.',
       icon: Zap,
       color: 'text-amber-500',
       bg: 'bg-amber-50',
       border: 'border-amber-100',
-      caps: ['سرعة استجابة', 'ذكاء عام', 'توفير موارد']
+      caps: ['استجابة سريعة', 'ذكاء متطور', 'تفاعلي فوري', 'مجاني']
     },
     {
-      id: ModelType.PRO,
-      name: 'Gemini 3 Pro Elite',
-      desc: 'قوة استدلال هائلة للحالات الطبية المحيرة والتشخيصات التفريقية المعقدة.',
-      icon: Brain,
-      color: 'text-blue-500',
-      bg: 'bg-blue-50',
-      border: 'border-blue-100',
-      caps: ['استدلال عميق', 'تحليل ملفات', 'بحث طبي']
+      id: ModelType.PRO_2_5,
+      name: 'Gemini 2.5 Pro Clinical',
+      desc: 'نموذج استدلالي عالي الدقة متخصص في البحوث المتقدمة وقواعد المعرفة الطبية الموثوقة.',
+      icon: Sparkles,
+      color: 'text-indigo-600',
+      bg: 'bg-indigo-50',
+      border: 'border-indigo-100',
+      caps: ['استدلال سريري', 'دقة علمية', 'تحليل متعمق', 'مجاني']
+    },
+    {
+      id: ModelType.FLASH_2_5,
+      name: 'Gemini 2.5 Flash Balanced',
+      desc: 'نموذج متزن للغاية يجمع بين السرعة العالية والموثوقية في تقييم العلامات الحيوية.',
+      icon: Cpu,
+      color: 'text-teal-600',
+      bg: 'bg-teal-50',
+      border: 'border-teal-100',
+      caps: ['سرعة متوازنة', 'موثوقية دقيقة', 'أداء خفيف', 'مجاني']
+    },
+    {
+      id: ModelType.PRO_1_5,
+      name: 'Gemini 1.5 Pro Long-Context',
+      desc: 'قدرة فائقة على استيعاب وقراءة التاريخ الطبي المطول والملفات الطبية والتحاليل الضخمة.',
+      icon: FileText,
+      color: 'text-cyan-600',
+      bg: 'bg-cyan-50',
+      border: 'border-cyan-100',
+      caps: ['سياق ضخم 2M', 'قراءة تقارير مطولة', 'شامل', 'مجاني']
     },
     {
       id: ModelType.LITE,
       name: 'Flash Lite Ultra',
-      desc: 'النموذج الأخف، مثالي لعمليات الفرز الأولية والدردشة البسيطة بأقل تكلفة زمنية.',
+      desc: 'النموذج الأخف والشارح، مثالي لعمليات الفرز الأولية والدردشة المباشرة بلمحة.',
       icon: Wind,
       color: 'text-emerald-500',
       bg: 'bg-emerald-50',
       border: 'border-emerald-100',
-      caps: ['سرعة لحظية', 'كفاءة طاقة', 'أداء مستقر']
+      caps: ['سرعة لحظية', 'كفاءة طاقة', 'أداء استثنائي', 'مجاني']
     },
     {
       id: ModelType.IMAGE_PRO,
-      name: 'Pro Vision Visionary',
-      desc: 'متخصص في تحليل الصور الطبية المعقدة واستخراج البيانات البصرية بدقة مذهلة.',
+      name: 'Pro Vision Multimodal',
+      desc: 'متخصص في قراءة وتحليل الأشعة بجميع أنواعها والصور الطبية بدقة عالية.',
       icon: ImageIcon,
       color: 'text-purple-500',
       bg: 'bg-purple-50',
       border: 'border-purple-100',
-      caps: ['تحليل صور 4K', 'رؤية حاسوبية', 'استنتاج بصري']
+      caps: ['تحليل صور بصرية', 'رؤية حاسوبية', 'تشخيص الأشعة', 'مجاني']
     },
     {
       id: ModelType.AUDIO_NATIVE,
       name: 'Audio Native Voice',
-      desc: 'تحليل صوتي أصيل يفهم النبرات الصوتية للمريض ويحلل الأعراض المسموعة.',
+      desc: 'تحليل صوتي وتفاعل حوار المريض الصوتي الحقيقي المباشر.',
       icon: Headphones,
       color: 'text-rose-500',
       bg: 'bg-rose-50',
       border: 'border-rose-100',
-      caps: ['استماع بشري', 'تحليل نبرة', 'ردود صوتية']
+      caps: ['حوار صوتي', 'تحليل نبرة', 'رد حي', 'مجاني']
     }
   ];
 

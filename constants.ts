@@ -5,7 +5,7 @@ export const INITIAL_SETTINGS: SystemSettings = {
   centerName: 'الحكيم الذكي Pro',
   doctorName: 'أحمد محمد',
   personality: AIPersonality.SIMPLE,
-  model: ModelType.FLASH,
+  model: ModelType.PRO,
   deepThinking: true,
   thinkingBudget: 16384, // القيمة الافتراضية
   googleSearch: true,

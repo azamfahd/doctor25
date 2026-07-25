@@ -224,11 +224,13 @@ async function startServer() {
       let lastError: any = null;
 
       const modelsToTry = Array.from(new Set([
-        settings.model,
+        settings.model || 'gemini-3.1-pro-preview',
+        'gemini-3.6-flash',
+        'gemini-3.5-pro',
+        'gemini-3.1-pro-preview',
         'gemini-3.5-flash',
+        'gemini-2.5-pro',
         'gemini-2.5-flash',
-        'gemini-1.5-flash',
-        'gemini-2.0-flash',
         'gemini-3-flash-preview'
       ]));
 
@@ -325,11 +327,13 @@ async function startServer() {
       let lastConsolidateError: any = null;
 
       const consolidateModelsToTry = Array.from(new Set([
-        modelName,
+        modelName || 'gemini-3.1-pro-preview',
+        'gemini-3.6-flash',
+        'gemini-3.5-pro',
+        'gemini-3.1-pro-preview',
         'gemini-3.5-flash',
+        'gemini-2.5-pro',
         'gemini-2.5-flash',
-        'gemini-1.5-flash',
-        'gemini-2.0-flash',
         'gemini-3-flash-preview'
       ]));
 
@@ -548,11 +552,13 @@ ${clinicalContext}
       let lastChatError: any = null;
 
       const chatModelsToTry = Array.from(new Set([
-        selectedModel,
+        selectedModel || 'gemini-3.1-pro-preview',
+        'gemini-3.6-flash',
+        'gemini-3.5-pro',
+        'gemini-3.1-pro-preview',
         'gemini-3.5-flash',
+        'gemini-2.5-pro',
         'gemini-2.5-flash',
-        'gemini-1.5-flash',
-        'gemini-2.0-flash',
         'gemini-3-flash-preview'
       ]));
 

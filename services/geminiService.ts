@@ -708,11 +708,9 @@ export const analyzeMedicalCase = async (
         }
         
         let modelName: string = settings.model;
-        if (modelName === ModelType.PRO) modelName = 'gemini-2.5-pro';
-        else if (modelName === ModelType.LITE) modelName = 'gemini-2.5-flash';
-        else if (modelName === ModelType.IMAGE_PRO) modelName = 'gemini-2.5-flash';
-        else if (modelName === ModelType.AUDIO_NATIVE) modelName = 'gemini-2.5-flash';
-        else if (modelName === ModelType.FLASH) modelName = 'gemini-2.5-flash';
+        if (modelName === ModelType.PRO) modelName = 'gemini-3.1-pro-preview';
+        else if (modelName === ModelType.FLASH) modelName = 'gemini-3.5-flash';
+        else if (modelName === ModelType.LITE) modelName = 'gemini-3.1-flash-lite-preview';
         
         const response = await ai.models.generateContent({
           model: modelName,
@@ -769,12 +767,10 @@ export const consolidateMedicalCases = async (
         console.log("Running Gemini consolidation directly on client side...");
         const ai = new GoogleGenAI({ apiKey });
         
-        let modelName: string = settings?.model || "gemini-2.5-flash";
-        if (modelName === ModelType.PRO) modelName = 'gemini-2.5-pro';
-        else if (modelName === ModelType.LITE) modelName = 'gemini-2.5-flash';
-        else if (modelName === ModelType.IMAGE_PRO) modelName = 'gemini-2.5-flash';
-        else if (modelName === ModelType.AUDIO_NATIVE) modelName = 'gemini-2.5-flash';
-        else if (modelName === ModelType.FLASH) modelName = 'gemini-2.5-flash';
+        let modelName: string = settings?.model || "gemini-3.1-pro-preview";
+        if (modelName === ModelType.PRO) modelName = 'gemini-3.1-pro-preview';
+        else if (modelName === ModelType.FLASH) modelName = 'gemini-3.5-flash';
+        else if (modelName === ModelType.LITE) modelName = 'gemini-3.1-flash-lite-preview';
         
         const casesSummary = cases.map((c: any, index: number) => {
           return `
@@ -884,15 +880,10 @@ export const startFollowUpChat = (patient: PatientCase, settings: SystemSettings
             console.log("Running Gemini follow-up chat directly on client side...");
             const ai = new GoogleGenAI({ apiKey });
             
-            let modelName: string = fallbackModelOverride || settings.model;
+            let modelName: string = fallbackModelOverride || settings.model || 'gemini-3.1-pro-preview';
             if (modelName === 'gemini-3.1-flash-live-preview') {
-              modelName = 'gemini-3-flash-preview';
+              modelName = 'gemini-3.6-flash';
             }
-            if (modelName === ModelType.PRO) modelName = 'gemini-2.5-pro';
-            else if (modelName === ModelType.LITE) modelName = 'gemini-2.5-flash';
-            else if (modelName === ModelType.IMAGE_PRO) modelName = 'gemini-2.5-flash';
-            else if (modelName === ModelType.AUDIO_NATIVE) modelName = 'gemini-2.5-flash';
-            else if (modelName === ModelType.FLASH) modelName = 'gemini-2.5-flash';
             
             const clinicalContext = `
               [ملف المريض السريري]
