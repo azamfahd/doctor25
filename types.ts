@@ -15,8 +15,8 @@ export enum ModelType {
   FLASH_2_5 = 'gemini-2.5-flash',
   PRO_1_5 = 'gemini-1.5-pro',
   LITE = 'gemini-3.1-flash-lite-preview',
-  IMAGE_PRO = 'gemini-3-pro-image-preview',
-  AUDIO_NATIVE = 'gemini-3.1-flash-live-preview'
+  IMAGE_PRO = 'gemini-3.1-pro-preview-vision',
+  AUDIO_NATIVE = 'gemini-3.8-live'
 }
 
 export enum ThemeMode {

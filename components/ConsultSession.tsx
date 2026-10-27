@@ -27,12 +27,23 @@ function decode(base64: string) {
 }
 
 async function decodeAudioData(data: Uint8Array, ctx: AudioContext, sampleRate: number, numChannels: number): Promise<AudioBuffer> {
-  const dataInt16 = new Int16Array(data.buffer);
-  const frameCount = dataInt16.length / numChannels;
+  // If it is a standard WAV container (starts with "RIFF" / bytes [82, 73, 70, 70])
+  if (data.length > 12 && data[0] === 0x52 && data[1] === 0x49 && data[2] === 0x46 && data[3] === 0x46) {
+    const arrayBuffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer;
+    return await ctx.decodeAudioData(arrayBuffer);
+  }
+
+  // Headerless raw PCM fallback
+  const byteOffset = data.byteOffset;
+  const sampleCount = Math.floor(data.byteLength / 2);
+  const dataInt16 = new Int16Array(data.buffer, byteOffset, sampleCount);
+  const frameCount = Math.floor(dataInt16.length / numChannels);
   const buffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
   for (let channel = 0; channel < numChannels; channel++) {
     const channelData = buffer.getChannelData(channel);
-    for (let i = 0; i < frameCount; i++) channelData[i] = dataInt16[i * numChannels + channel] / 32768.0;
+    for (let i = 0; i < frameCount; i++) {
+      channelData[i] = dataInt16[i * numChannels + channel] / 32768.0;
+    }
   }
   return buffer;
 }
@@ -195,10 +206,7 @@ const ConsultSession: React.FC<ConsultSessionProps> = ({ patient, settings, onCl
     try {
       if (msgIndex !== undefined) setPlayingMessageIndex(msgIndex);
 
-      const apiKey = settings?.apiKey || (typeof process !== "undefined" ? process.env?.GEMINI_API_KEY : undefined);
-      const hasKey = apiKey && apiKey.trim() !== "" && apiKey.length > 10;
-
-      if (selectedVoice === 'WebSpeech' || !hasKey) {
+      if (selectedVoice === 'WebSpeech') {
         setIsSpeaking(true);
         speakWithWebSpeech(text, sessionId, () => {
           if (sessionId !== speechSessionIdRef.current) return;
@@ -216,7 +224,7 @@ const ConsultSession: React.FC<ConsultSessionProps> = ({ patient, settings, onCl
         try {
           const speechPromise = generateSpeech(text, settings, selectedVoice);
           const timeoutPromise = new Promise<null>((_, reject) => 
-            setTimeout(() => reject(new Error("AUDIO_GENERATION_TIMEOUT")), 2200)
+            setTimeout(() => reject(new Error("AUDIO_GENERATION_TIMEOUT")), 12000)
           );
           
           base64Audio = await Promise.race([speechPromise, timeoutPromise]);
@@ -300,7 +308,7 @@ const ConsultSession: React.FC<ConsultSessionProps> = ({ patient, settings, onCl
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       
       const sessionPromise = ai.live.connect({
-        model: 'gemini-3.1-flash-live-preview',
+        model: 'gemini-3.8-live',
         callbacks: {
           onopen: () => {
             setIsLiveActive(true);
@@ -310,7 +318,9 @@ const ConsultSession: React.FC<ConsultSessionProps> = ({ patient, settings, onCl
               const inputData = e.inputBuffer.getChannelData(0);
               const int16 = new Int16Array(inputData.length);
               for (let i = 0; i < inputData.length; i++) int16[i] = inputData[i] * 32768;
-              sessionPromise.then(s => s.sendRealtimeInput({ media: { data: encode(new Uint8Array(int16.buffer)), mimeType: 'audio/pcm;rate=16000' } }));
+              sessionPromise.then(s => s.sendRealtimeInput({
+                audio: { data: encode(new Uint8Array(int16.buffer)), mimeType: 'audio/pcm;rate=16000' }
+              }));
             };
             source.connect(scriptProcessor);
             scriptProcessor.connect(inputCtx.destination);

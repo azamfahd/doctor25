@@ -151,15 +151,20 @@ async function startServer() {
       const prompt = getModelSpecificPrompt(settings.model, patientData, settings.thinkingBudget, settings.deepThinking);
 
       const parts: any[] = [{ text: prompt }];
-      if (patientData.images && patientData.images.length > 0) {
+      if (patientData.images && Array.isArray(patientData.images) && patientData.images.length > 0) {
         patientData.images.forEach((img: string) => {
-          if (img.includes(',')) {
-            parts.push({
-              inlineData: {
-                mimeType: 'image/jpeg',
-                data: img.split(',')[1]
-              }
-            });
+          if (typeof img === 'string') {
+            const mimeMatch = img.match(/^data:([^;]+);base64,/);
+            const mimeType = mimeMatch ? mimeMatch[1] : (img.startsWith('data:application/pdf') ? 'application/pdf' : 'image/jpeg');
+            const data = img.includes(',') ? img.split(',')[1] : img;
+            if (data && data.trim()) {
+              parts.push({
+                inlineData: {
+                  mimeType,
+                  data: data.trim()
+                }
+              });
+            }
           }
         });
       }
@@ -212,39 +217,34 @@ async function startServer() {
         config.tools = [{ googleSearch: {} }];
       }
 
-      if (settings.deepThinking && settings.model.includes('gemini-3')) {
-        if (!settings.model.includes('pro') && !settings.model.includes('lite')) {
-          config.thinkingConfig = { 
-            thinkingBudgetTokens: settings.thinkingBudget 
-          };
-        }
+      let configuredModel = settings.model || 'gemini-3.1-pro-preview';
+      // Remap image generation model to vision understanding model if selected
+      if (configuredModel.includes('pro-image-preview') || configuredModel.includes('image-preview')) {
+        configuredModel = 'gemini-3.1-pro-preview';
       }
 
       let response;
       let lastError: any = null;
 
       const modelsToTry = Array.from(new Set([
-        settings.model || 'gemini-3.1-pro-preview',
+        configuredModel,
+        'gemini-3.1-pro-preview',
         'gemini-3.6-flash',
         'gemini-3.5-pro',
-        'gemini-3.1-pro-preview',
         'gemini-3.5-flash',
         'gemini-2.5-pro',
-        'gemini-2.5-flash',
-        'gemini-3-flash-preview'
+        'gemini-2.5-flash'
       ]));
 
       for (const modelName of modelsToTry) {
         try {
           const currentConfig = { ...config };
-          // Strip features if the fallback model is different from the configured one
-          if (modelName !== settings.model) {
-            currentConfig.thinkingConfig = undefined;
+          if (modelName !== configuredModel) {
             currentConfig.tools = undefined;
           }
           response = await ai.models.generateContent({
             model: modelName,
-            contents: { parts },
+            contents: parts,
             config: currentConfig
           });
           if (response) {
@@ -595,6 +595,116 @@ ${clinicalContext}
         errMsg = "لقد تم تجاوز الحصص المجانية للمحادثة الطبية (Quota Exceeded) لطراز الذكاء الاصطناعي الحالي. يرجى التوجه لصفحة الإعدادات وتفعيل مفتاح الـ API الخاص بك للمتابعة دون انقطاع، أو المحاولة مرة أخرى لاحقاً.";
       }
       res.status(500).json({ error: errMsg });
+    }
+  });
+
+  // High-fidelity Medical Speech Generation API (TTS)
+  app.post("/api/generate-speech", async (req, res) => {
+    try {
+      const { text, settings, voiceName } = req.body;
+      const apiKey = settings?.apiKey || process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        return res.status(400).json({ error: "MISSING_API_KEY" });
+      }
+
+      if (!text || typeof text !== "string" || !text.trim()) {
+        return res.status(400).json({ error: "EMPTY_TEXT" });
+      }
+
+      const cleanTextForTTS = (input: string): string => {
+        let clean = input;
+        clean = clean.replace(/(\d+)\s*%\s*/g, "$1 بالمئة ");
+        clean = clean.replace(/%/g, " بالمئة ");
+        clean = clean.replace(/\b(bpm|BPM)\b/gi, " نبضة في الدقيقة ");
+        clean = clean.replace(/\b(mg|MG)\b/gi, " مليجرام ");
+        clean = clean.replace(/\b(ml|ML)\b/gi, " مليلتر ");
+        clean = clean.replace(/\b(kg|KG)\b/gi, " كيلوجرام ");
+        clean = clean.replace(/\b(g|G)\b/gi, " جرام ");
+        clean = clean.replace(/°\s*C/gi, " درجة مئوية ");
+        clean = clean.replace(/\bCelsius\b/gi, " درجة مئوية ");
+        clean = clean.replace(/\b(pH|PH)\b/g, " بي إتش ");
+        clean = clean.replace(/[\u2600-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF]/g, "");
+        clean = clean.replace(/\*\*/g, " ");
+        clean = clean.replace(/\*/g, " ");
+        clean = clean.replace(/#/g, " ");
+        clean = clean.replace(/`/g, " ");
+        clean = clean.replace(/~/g, " ");
+        clean = clean.replace(/_+/g, " ");
+        clean = clean.replace(/[●•\-+]/g, " ");
+        clean = clean.replace(/[\[\]\(\)\{\}]/g, " ");
+        clean = clean.replace(/[:؛;!؟?]/g, "، ");
+        clean = clean.replace(/[#@$^&*|\\/=<>]/g, " ");
+        clean = clean.replace(/\s+/g, " ");
+        return clean.trim();
+      };
+
+      const sanitizedText = cleanTextForTTS(text);
+      if (!sanitizedText) {
+        return res.status(400).json({ error: "CLEANED_TEXT_EMPTY" });
+      }
+
+      const ai = new GoogleGenAI({ apiKey });
+      const targetVoice = (voiceName && voiceName !== 'WebSpeech') ? voiceName : 'Kore';
+
+      // TTS models to try: gemini-3.8-flash-lite-tts -> gemini-3.8-flash-tts -> gemini-3.1-flash-tts-preview
+      const ttsModels = [
+        'gemini-3.8-flash-lite-tts',
+        'gemini-3.8-flash-tts',
+        'gemini-3.1-flash-tts-preview'
+      ];
+
+      let audioData: string | null = null;
+      let lastTTSError: any = null;
+
+      for (const modelName of ttsModels) {
+        try {
+          const response = await ai.models.generateContent({
+            model: modelName,
+            contents: [
+              {
+                role: "user",
+                parts: [
+                  {
+                    text: sanitizedText,
+                    speechMetadata: {
+                      style: "Clear, reassuring, professional medical consultant speaking formal Arabic"
+                    }
+                  }
+                ]
+              }
+            ] as any,
+            config: {
+              responseModalities: [Modality.AUDIO],
+              speechConfig: {
+                voiceConfig: {
+                  prebuiltVoiceConfig: { voiceName: targetVoice }
+                }
+              }
+            }
+          });
+
+          const base64 = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+          if (base64) {
+            audioData = base64;
+            break;
+          }
+        } catch (err: any) {
+          lastTTSError = err;
+          logWarnCleanly(`TTS model ${modelName} failed, trying next...`, err);
+        }
+      }
+
+      if (!audioData) {
+        throw lastTTSError || new Error("Failed to generate speech audio");
+      }
+
+      res.json({
+        audioData,
+        mimeType: "audio/wav"
+      });
+    } catch (err: any) {
+      logErrorCleanly("Speech generation error", err);
+      res.status(500).json({ error: err.message || "Failed to generate speech" });
     }
   });
 

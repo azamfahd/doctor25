@@ -5,7 +5,7 @@ import {
   Database, CheckCircle2, AlertCircle, Palette, UserCog, HardDrive, 
   RefreshCcw, Cpu, Zap, Globe, Image as ImageIcon,
   Wind, Sliders, Headphones, LogIn, LogOut, UserPlus, ExternalLink, Home,
-  Download, Upload, ChevronDown, Sparkles, FileText
+  Download, Upload, ChevronDown, Sparkles, FileText, Smartphone, Github
 } from 'lucide-react';
 import { SystemSettings, ModelType, PatientCase, AIPersonality, ThemeMode } from '../types';
 import { supabase } from '../src/lib/supabase';
@@ -690,6 +690,47 @@ const Settings: React.FC<SettingsProps> = ({ settings, setSettings, onSave, onCl
                     ref={fileInputRef} 
                     className="hidden" 
                   />
+                </div>
+              </div>
+           </section>
+
+           {/* Android APK & GitHub Actions Export */}
+           <section className="bg-white rounded-xl lg:rounded-2xl p-5 lg:p-6 shadow-sm border border-slate-50 space-y-4">
+              <div className="flex items-center gap-2.5 lg:gap-3 border-b border-slate-50 pb-3">
+                <div className="p-1.5 lg:p-2 bg-emerald-50 rounded-lg lg:rounded-xl text-emerald-600">
+                  <Smartphone className="w-4 h-4 lg:w-5 lg:h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm lg:text-base font-black text-slate-800">تطبيق Android APK و GitHub Actions</h3>
+                  <p className="text-slate-400 text-[7px] lg:text-[8px] font-bold uppercase tracking-widest mt-0.5">Automated Native APK Packaging</p>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-br from-slate-900 to-indigo-950 p-4 rounded-xl text-white space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-black flex items-center gap-1.5 text-blue-300">
+                    <Github className="w-4 h-4 text-white" /> تكامل GitHub CI/CD التلقائي
+                  </span>
+                  <span className="text-[8px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-full">جاهز للعمل</span>
+                </div>
+                <p className="text-[10px] text-slate-300 leading-relaxed">
+                  تم تضمين ملف سير عمل GitHub Actions (<code>.github/workflows/build-apk.yml</code>) وتهيئة محرك Capacitor. عند ربط المشروع بحسابك على GitHub ومزامنة الكود (Git Push):
+                </p>
+                <div className="bg-black/30 p-2.5 rounded-lg text-[9px] text-slate-300 space-y-1.5 font-mono">
+                  <div className="text-emerald-400 font-bold font-sans">✓ يتم تشغيل خوادم الأتمتة لبناء حزمة APK تلقائياً</div>
+                  <div>1. تثبيت الحزم وبناء ملفات الويب Vite</div>
+                  <div>2. مزامنة أصول أندرويد عبر Capacitor</div>
+                  <div>3. بناء وتوليد ملف APK جاهز للتثبيت (<code>alhakim-pro.apk</code>)</div>
+                </div>
+                <p className="text-[9px] text-slate-400">
+                  ستجد ملف APK دائماً في تبويب <strong>Actions</strong> داخل مستودع GitHub لتحميله مباشرة وتثبيته على أي هاتف Android.
+                </p>
+              </div>
+
+              <div className="bg-blue-50/70 p-3.5 rounded-xl border border-blue-100 flex items-start gap-2.5">
+                <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                <div className="text-[10px] text-blue-900 leading-relaxed font-bold">
+                  <strong>نظام الحفظ المحلي الفائق (Offline-First):</strong> يعمل التطبيق بدون اتصال عبر IndexedDB + LocalStorage، وتظل جميع الفحوصات والتشخيصات والصور محفوظة في جهازك دائماً دون الحاجة لشبكة.
                 </div>
               </div>
            </section>

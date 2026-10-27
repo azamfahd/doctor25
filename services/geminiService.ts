@@ -637,15 +637,20 @@ export const analyzeMedicalCase = async (
         const prompt = getModelSpecificPrompt(settings.model, patientData, settings.thinkingBudget, settings.deepThinking);
         
         const parts: any[] = [{ text: prompt }];
-        if (patientData.images && patientData.images.length > 0) {
+        if (patientData.images && Array.isArray(patientData.images) && patientData.images.length > 0) {
           patientData.images.forEach((img: string) => {
-            if (img.includes(',')) {
-              parts.push({
-                inlineData: {
-                  mimeType: 'image/jpeg',
-                  data: img.split(',')[1]
-                }
-              });
+            if (typeof img === 'string') {
+              const mimeMatch = img.match(/^data:([^;]+);base64,/);
+              const mimeType = mimeMatch ? mimeMatch[1] : (img.startsWith('data:application/pdf') ? 'application/pdf' : 'image/jpeg');
+              const data = img.includes(',') ? img.split(',')[1] : img;
+              if (data && data.trim()) {
+                parts.push({
+                  inlineData: {
+                    mimeType,
+                    data: data.trim()
+                  }
+                });
+              }
             }
           });
         }
@@ -699,22 +704,15 @@ export const analyzeMedicalCase = async (
           config.tools = [{ googleSearch: {} }];
         }
         
-        if (settings.deepThinking && settings.model.includes('gemini-3')) {
-          if (!settings.model.includes('pro') && !settings.model.includes('lite')) {
-            config.thinkingConfig = { 
-              thinkingBudgetTokens: settings.thinkingBudget 
-            };
-          }
-        }
-        
         let modelName: string = settings.model;
         if (modelName === ModelType.PRO) modelName = 'gemini-3.1-pro-preview';
         else if (modelName === ModelType.FLASH) modelName = 'gemini-3.5-flash';
         else if (modelName === ModelType.LITE) modelName = 'gemini-3.1-flash-lite-preview';
+        else if (modelName.includes('image-preview') || modelName.includes('pro-image-preview')) modelName = 'gemini-3.1-pro-preview';
         
         const response = await ai.models.generateContent({
           model: modelName,
-          contents: { parts },
+          contents: parts,
           config
         });
         
@@ -1035,19 +1033,35 @@ export const generateSpeech = async (text: string, settings?: SystemSettings, vo
         const sanitizedText = cleanTextForTTS(text);
         if (!sanitizedText) return "";
 
-        const response = await ai.models.generateContent({
-          model: "gemini-3.1-flash-tts-preview",
-          contents: [{ parts: [{ text: sanitizedText }] }],
-          config: {
-            responseModalities: [Modality.AUDIO],
-            speechConfig: { 
-              voiceConfig: { 
-                prebuiltVoiceConfig: { voiceName: voiceName || 'Puck' } 
-              } 
+        let response;
+        try {
+          response = await ai.models.generateContent({
+            model: "gemini-3.8-flash-lite-tts",
+            contents: [{ parts: [{ text: sanitizedText }] }],
+            config: {
+              responseModalities: [Modality.AUDIO],
+              speechConfig: { 
+                voiceConfig: { 
+                  prebuiltVoiceConfig: { voiceName: voiceName || 'Kore' } 
+                } 
+              },
             },
-          },
-        });
-        return response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data || "";
+          });
+        } catch (mErr) {
+          response = await ai.models.generateContent({
+            model: "gemini-3.8-flash-tts",
+            contents: [{ parts: [{ text: sanitizedText }] }],
+            config: {
+              responseModalities: [Modality.AUDIO],
+              speechConfig: { 
+                voiceConfig: { 
+                  prebuiltVoiceConfig: { voiceName: voiceName || 'Kore' } 
+                } 
+              },
+            },
+          });
+        }
+        return response?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data || "";
       } catch (e) {
         console.error("Direct browser speech generation failed.", e);
       }

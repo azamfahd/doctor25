@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   Sparkles, Activity, Thermometer, Droplets, HeartPulse, Trash, 
-  ImagePlus, FileSearch, Home
+  ImagePlus, FileSearch, Home, FileText, UploadCloud, CheckCircle2
 } from 'lucide-react';
 import { PatientCase, VitalSigns } from '../types';
 import { VitalSignsScanner } from './VitalSignsScanner';
@@ -61,31 +61,51 @@ const Diagnosis: React.FC<DiagnosisProps> = ({ onAnalyze, isAnalyzing, onNavigat
     onAnalyze({ name, age, gender, symptoms, vitals, images: images.length > 0 ? images : undefined });
   };
 
-  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []) as File[];
-    if (files.length > 0) {
-      const newImages = await Promise.all(
-        files.map(file => {
-          return new Promise<string>((resolve) => {
-            const reader = new FileReader();
-            reader.onload = (event) => {
-              const img = new Image();
-              img.onload = () => {
+  const [isDragging, setIsDragging] = useState(false);
+
+  const processFiles = async (files: File[]) => {
+    if (!files || files.length === 0) return;
+    const processed = await Promise.all(
+      files.map(file => {
+        return new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onerror = () => resolve('');
+
+          // If file is a PDF medical test/report
+          if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+            reader.onload = (e) => {
+              const res = e.target?.result as string;
+              resolve(res || '');
+            };
+            reader.readAsDataURL(file);
+            return;
+          }
+
+          // If image: compress via canvas with graceful fallback
+          reader.onload = (event) => {
+            const rawData = event.target?.result as string;
+            if (!rawData) {
+              resolve('');
+              return;
+            }
+            const img = new Image();
+            img.onerror = () => resolve(rawData); // Fallback to raw data if canvas fails
+            img.onload = () => {
+              try {
                 const canvas = document.createElement('canvas');
-                const MAX_WIDTH = 1024;
-                const MAX_HEIGHT = 1024;
+                const MAX_DIM = 1400;
                 let width = img.width;
                 let height = img.height;
 
                 if (width > height) {
-                  if (width > MAX_WIDTH) {
-                    height *= MAX_WIDTH / width;
-                    width = MAX_WIDTH;
+                  if (width > MAX_DIM) {
+                    height = Math.round(height * (MAX_DIM / width));
+                    width = MAX_DIM;
                   }
                 } else {
-                  if (height > MAX_HEIGHT) {
-                    width *= MAX_HEIGHT / height;
-                    height = MAX_HEIGHT;
+                  if (height > MAX_DIM) {
+                    width = Math.round(width * (MAX_DIM / height));
+                    height = MAX_DIM;
                   }
                 }
 
@@ -93,16 +113,29 @@ const Diagnosis: React.FC<DiagnosisProps> = ({ onAnalyze, isAnalyzing, onNavigat
                 canvas.height = height;
                 const ctx = canvas.getContext('2d');
                 ctx?.drawImage(img, 0, 0, width, height);
-                resolve(canvas.toDataURL('image/jpeg', 0.7));
-              };
-              img.src = event.target?.result as string;
+                const mime = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+                resolve(canvas.toDataURL(mime, 0.85));
+              } catch (err) {
+                resolve(rawData);
+              }
             };
-            reader.readAsDataURL(file);
-          });
-        })
-      );
-      setImages(prev => [...prev, ...newImages]);
+            img.src = rawData;
+          };
+          reader.readAsDataURL(file);
+        });
+      })
+    );
+
+    const valid = processed.filter(Boolean);
+    if (valid.length > 0) {
+      setImages(prev => [...prev, ...valid]);
     }
+  };
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []) as File[];
+    await processFiles(files);
+    if (e.target) e.target.value = '';
   };
 
   const removeImage = (index: number) => {
@@ -304,34 +337,94 @@ const Diagnosis: React.FC<DiagnosisProps> = ({ onAnalyze, isAnalyzing, onNavigat
             )}
           </div>
 
-          {/* Image Uploader */}
-          <div className="space-y-1.5">
-            <label className="text-[8px] font-black text-slate-400 pr-2 uppercase tracking-widest">التعرف البصري المتقدم (الرؤية الحاسوبية - الأشعة)</label>
+          {/* Image and Medical Document Uploader */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-[8px] font-black text-slate-400 pr-2 uppercase tracking-widest flex items-center gap-1.5">
+                <ImagePlus className="w-3.5 h-3.5 text-blue-500" />
+                <span>إرفاق الأشعة، التحاليل المخبرية، أو تقارير الفحص الطبي</span>
+              </label>
+              {images.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-[8px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3 text-blue-500" /> تم إرفاق {images.length} ملف
+                  </span>
+                  <button 
+                    onClick={() => setImages([])}
+                    className="text-[8px] font-bold text-rose-500 hover:text-rose-700 hover:underline cursor-pointer"
+                  >
+                    حذف الكل
+                  </button>
+                </div>
+              )}
+            </div>
+            
             <div 
-              className="border-2 border-dashed border-slate-200 rounded-xl p-6 flex flex-col items-center justify-center bg-slate-50/30 hover:bg-blue-50/50 hover:border-blue-200 transition-all cursor-pointer group" 
+              onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+              onDragLeave={() => setIsDragging(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setIsDragging(false);
+                const files = Array.from(e.dataTransfer.files || []) as File[];
+                processFiles(files);
+              }}
               onClick={() => fileInputRef.current?.click()}
+              className={`border-2 border-dashed rounded-2xl p-6 flex flex-col items-center justify-center transition-all cursor-pointer group ${
+                isDragging 
+                  ? 'border-blue-500 bg-blue-50/80 scale-[1.01]' 
+                  : 'border-slate-200 bg-slate-50/40 hover:bg-blue-50/50 hover:border-blue-300'
+              }`}
             >
-              <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm mb-3 group-hover:scale-110 transition-transform">
-                <ImagePlus className="w-5 h-5 text-blue-400" />
+              <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm mb-3 group-hover:scale-110 group-hover:shadow-md transition-all text-blue-500">
+                <UploadCloud className="w-6 h-6 animate-pulse-soft" />
               </div>
-              <p className="text-[10px] font-black text-slate-600 mb-0.5">أرفق صور مقطعية (CT)، رنين (MRI)، أو تسجيلات ورقية (OCR)</p>
-              <p className="text-[7px] text-slate-400 font-bold uppercase tracking-widest">JPG, PNG حتى 10 ميجابايت المدعومة بنظام تصوير Gemini 3</p>
-              <input type="file" ref={fileInputRef} hidden accept="image/*" multiple onChange={handleImageChange} />
+              <p className="text-xs font-black text-slate-700 mb-1">
+                اضغط لاختيار أو اسحب وأفلت صور الأشعة والتقارير الطبية هنا
+              </p>
+              <p className="text-[9px] text-slate-400 font-bold max-w-md text-center leading-relaxed">
+                يدعم صور الأشعة السينية (X-Ray)، الرنين المغناطيسي (MRI)، الأشعة المقطعية (CT)، تحاليل الدم (CBC)، وتقارير الفحص بصيغ JPG, PNG, WebP, PDF
+              </p>
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                hidden 
+                accept="image/*,application/pdf" 
+                multiple 
+                onChange={handleImageChange} 
+              />
             </div>
             
             {images.length > 0 && (
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 mt-4">
-                {images.map((img, idx) => (
-                  <div key={idx} className="relative group/img aspect-square rounded-lg overflow-hidden border-2 border-slate-200 shadow-sm">
-                    <img src={img} className="w-full h-full object-cover" alt={`doc-${idx}`} />
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); removeImage(idx); }} 
-                      className="absolute top-1 right-1 bg-rose-600 text-white p-1 rounded-full shadow-lg opacity-0 group-hover/img:opacity-100 transition-opacity"
-                    >
-                      <Trash className="w-3 h-3" />
-                    </button>
-                  </div>
-                ))}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 mt-3">
+                {images.map((img, idx) => {
+                  const isPdf = img.startsWith('data:application/pdf');
+                  return (
+                    <div key={idx} className="relative group/img aspect-square rounded-xl overflow-hidden border-2 border-slate-200 shadow-sm bg-slate-900 flex flex-col items-center justify-center p-2">
+                      {isPdf ? (
+                        <div className="w-full h-full bg-slate-50 flex flex-col items-center justify-center p-2 text-center">
+                          <FileText className="w-8 h-8 text-rose-500 mb-1 animate-pulse" />
+                          <span className="text-[8px] font-black text-slate-700 truncate max-w-full">تقرير طبي PDF</span>
+                          <span className="text-[7px] font-bold text-rose-500 uppercase tracking-widest mt-0.5">جاهز للتحليل</span>
+                        </div>
+                      ) : (
+                        <img src={img} className="w-full h-full object-cover" alt={`doc-${idx}`} />
+                      )}
+                      
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                        <span className="text-[9px] text-white font-bold bg-black/60 px-2 py-0.5 rounded-full">ملف {idx + 1}</span>
+                      </div>
+                      
+                      <button 
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); removeImage(idx); }} 
+                        className="absolute top-1.5 right-1.5 bg-rose-600 hover:bg-rose-700 text-white p-1.5 rounded-full shadow-lg opacity-90 hover:opacity-100 transition-all hover:scale-110 cursor-pointer z-10"
+                        title="حذف هذا الملف"
+                      >
+                        <Trash className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

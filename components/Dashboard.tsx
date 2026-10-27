@@ -34,9 +34,11 @@ const Dashboard: React.FC<DashboardProps> = ({ doctorName, records, onNewCase, o
       case 'gemini-2.5-pro': return 'Gemini 2.5 Pro Clinical';
       case 'gemini-2.5-flash': return 'Gemini 2.5 Flash Balanced';
       case 'gemini-1.5-pro': return 'Gemini 1.5 Pro Long-Context';
+      case 'gemini-3.1-pro-preview-vision': return 'Pro Vision Multimodal';
+      case 'gemini-3.8-live': return 'Gemini 3.8 Live Voice';
       case 'gemini-3.1-flash-lite-preview': return 'Gemini 3.1 Flash Lite';
-      case 'gemini-3-pro-image-preview': return 'Gemini 3 Pro Image';
-      case 'gemini-3.1-flash-live-preview': return 'Gemini 3.1 Flash Live';
+      case 'gemini-3-pro-image-preview': return 'Pro Vision Multimodal';
+      case 'gemini-3.1-flash-live-preview': return 'Gemini Live Voice';
       default: return model;
     }
   };
@@ -306,48 +308,55 @@ const Dashboard: React.FC<DashboardProps> = ({ doctorName, records, onNewCase, o
           </div>
           <div className="p-0">
             {recentRecords.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full text-right border-collapse text-[11px]">
+              <div className="overflow-x-auto w-full" dir="rtl">
+                <table className="w-full text-right border-collapse text-xs sm:text-sm">
                   <thead>
-                    <tr className="bg-slate-50/50 text-slate-500 font-bold border-b border-slate-100">
-                      <th className="py-2.5 px-3">السجل الطبي</th>
-                      <th className="py-2.5 px-3">التشخيص المقترح</th>
-                      <th className="py-2.5 px-3 text-center">الحالة</th>
+                    <tr className="bg-slate-50/80 text-slate-700 font-bold border-b border-slate-150 text-xs">
+                      <th className="py-3 px-3.5 font-bold">السجل الطبي</th>
+                      <th className="py-3 px-3.5 font-bold">التشخيص المقترح</th>
+                      <th className="py-3 px-3.5 text-center font-bold">الحالة السريرية</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50">
                     {recentRecords.map((record) => (
                       <tr 
                         key={record.id} 
-                        className="hover:bg-slate-50/80 transition-colors group cursor-pointer"
+                        className="hover:bg-blue-50/30 transition-colors group cursor-pointer"
+                        onClick={onViewAll}
                       >
-                        <td className="py-2 px-3">
+                        <td className="py-3 px-3.5 align-middle">
                           <div className="flex items-center gap-2.5">
-                            <div className={`w-7 h-7 rounded-md flex items-center justify-center shadow-sm transition-all group-hover:scale-105 shrink-0 ${
-                              record.status === 'حرجة' ? 'bg-rose-50 text-rose-600 border border-rose-100' : 
-                              record.status === 'تدخل طبي' ? 'bg-orange-50 text-orange-600 border border-orange-100' : 
-                              record.status === 'متابعة' ? 'bg-blue-50 text-blue-600 border border-blue-100' : 
-                              'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center shadow-xs transition-all group-hover:scale-105 shrink-0 border ${
+                              record.status === 'حرجة' ? 'bg-rose-50 text-rose-700 border-rose-200' : 
+                              record.status === 'تدخل طبي' ? 'bg-amber-50 text-amber-800 border-amber-200' : 
+                              record.status === 'متابعة' ? 'bg-blue-50 text-blue-700 border-blue-200' : 
+                              'bg-emerald-50 text-emerald-700 border-emerald-200'
                             }`}>
-                              <Activity className="w-3.5 h-3.5" />
+                              <Activity className="w-4 h-4" />
                             </div>
                             <div>
-                              <h4 className="font-bold text-slate-900 text-[11px] mb-0.5 group-hover:text-blue-600 transition-colors">{record.name}</h4>
-                              <span className="text-[9px] text-slate-400 font-mono tracking-tight">{record.date}</span>
+                              <h4 className="font-bold text-slate-900 text-sm mb-0.5 group-hover:text-blue-600 transition-colors leading-snug">{record.name}</h4>
+                              <span className="text-[11px] text-slate-400 font-mono tabular-nums">{record.date}</span>
                             </div>
                           </div>
                         </td>
-                        <td className="py-2 px-3 font-bold text-indigo-700 truncate max-w-[150px]">
-                          {record.diagnosis?.conditionName || 'بانتظار التحليل'}
+                        <td className="py-3 px-3.5 font-bold text-slate-800 text-xs sm:text-sm truncate max-w-[180px] align-middle">
+                          {record.diagnosis?.conditionName || <span className="text-slate-400 font-medium italic">بانتظار التحليل</span>}
                         </td>
-                        <td className="py-2 px-3 text-center">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[9px] font-bold border ${
-                            record.status === 'حرجة' ? 'bg-rose-50 text-rose-700 border-rose-100' : 
-                            record.status === 'تدخل طبي' ? 'bg-orange-50 text-orange-700 border-orange-100' : 
-                            record.status === 'متابعة' ? 'bg-blue-50 text-blue-700 border-blue-100' : 
-                            'bg-emerald-50 text-emerald-700 border-emerald-100'
+                        <td className="py-3 px-3.5 text-center align-middle whitespace-nowrap">
+                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold border ${
+                            record.status === 'حرجة' ? 'bg-rose-50 text-rose-700 border-rose-200' : 
+                            record.status === 'تدخل طبي' ? 'bg-amber-50 text-amber-800 border-amber-200' : 
+                            record.status === 'متابعة' ? 'bg-blue-50 text-blue-700 border-blue-200' : 
+                            'bg-emerald-50 text-emerald-700 border-emerald-200'
                           }`}>
-                            {record.status}
+                            <span className={`w-1.5 h-1.5 rounded-full ${
+                              record.status === 'حرجة' ? 'bg-rose-500' : 
+                              record.status === 'تدخل طبي' ? 'bg-amber-500' : 
+                              record.status === 'متابعة' ? 'bg-blue-500' : 
+                              'bg-emerald-500'
+                            }`}></span>
+                            <span>{record.status}</span>
                           </span>
                         </td>
                       </tr>

@@ -15,7 +15,7 @@ import { analyzeMedicalCase } from './services/geminiService.ts';
 import { MessageSquare, Activity, Home } from 'lucide-react';
 import { supabase } from './src/lib/supabase.ts';
 import { Session } from '@supabase/supabase-js';
-import { db } from './src/db/localDb.ts';
+import { db, saveRecordLocally, loadAllLocalRecords, exportDatabaseBackup, importDatabaseBackup } from './src/db/localDb.ts';
 import { SensorsHub } from './components/SensorsHub.tsx';
 
 const App: React.FC = () => {
@@ -143,11 +143,10 @@ const App: React.FC = () => {
 
   const loadLocalRecords = async () => {
     try {
-      // Use Dexie IndexedDB for robust large data loading including heavy base64 images
-      const localData = await db.records.toArray();
+      const localData = await loadAllLocalRecords();
       
       if (localData.length === 0) {
-        // Mock default data for showcase if totally empty
+        // Mock default data for showcase only if totally empty
         const mockData: PatientCase[] = [
           {
             id: 'mock-1',
@@ -173,8 +172,6 @@ const App: React.FC = () => {
         await db.records.bulkPut(mockData);
         setRecords(mockData);
       } else {
-        // Sort newest first
-        localData.reverse();
         setRecords(localData);
       }
     } catch (err) {
@@ -186,11 +183,11 @@ const App: React.FC = () => {
     const updatedRecords = [newRecord, ...records];
     setRecords(updatedRecords);
     
-    // Save to deep local IndexedDB (no image stripping required, huge capacity)
+    // Save to multi-layer local storage (IndexedDB + snapshot fallback)
     try {
-      await db.records.put(newRecord);
+      await saveRecordLocally(newRecord);
     } catch (err) {
-      console.error("Failed writing to Dexie IndexedDB:", err);
+      console.error("Failed writing to local database:", err);
     }
 
     // Try background cloud sync if logged in
@@ -249,7 +246,7 @@ const App: React.FC = () => {
       const updatedRecords = records.map(r => r.id === patientId ? newData : r);
       
       setRecords(updatedRecords);
-      await db.records.put(newData);
+      await saveRecordLocally(newData);
 
       if (session) {
         const { error } = await supabase
@@ -426,6 +423,8 @@ const App: React.FC = () => {
           onNewCase={() => setActiveTab('diagnosis')}
           onNavigateHome={() => setActiveTab('home')}
           settings={settings}
+          onReloadRecords={loadLocalRecords}
+          onNavigateTab={(tab) => setActiveTab(tab)}
         />
       ),
       consult: (

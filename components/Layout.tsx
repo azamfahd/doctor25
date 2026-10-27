@@ -4,6 +4,7 @@ import {
   Home, Settings, MessageSquareQuote, Menu, LogOut, Zap, Database, TrendingUp, BarChart2, Activity
 } from 'lucide-react';
 import { SystemSettings } from '../types';
+import { PWAInstallButton } from './PWAInstallButton';
 
 const AlHakimLogo = ({ className = "w-10 h-10" }) => (
   <svg viewBox="0 0 100 100" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -159,7 +160,8 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, sett
             </div>
           </div>
           
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+             <PWAInstallButton />
              <div className="hidden sm:flex flex-col items-end mr-1">
                 <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.15em] mb-0.5">المستوى المهني</span>
                 <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-md border border-blue-100">استشاري أول</span>

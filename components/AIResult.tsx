@@ -31,10 +31,19 @@ function decodeBytes(base64: string): Uint8Array {
   return bytes;
 }
 
-// Helper to construct AudioBuffer from raw Int16 PCM (Gemini TTS outputs raw 24KHz Int16 mono)
+// Helper to construct AudioBuffer from WAV container or raw Int16 PCM
 async function decodeAudioData(data: Uint8Array, ctx: AudioContext, sampleRate: number, numChannels: number): Promise<AudioBuffer> {
-  const dataInt16 = new Int16Array(data.buffer);
-  const frameCount = dataInt16.length / numChannels;
+  // If it is a WAV container (starts with "RIFF" / bytes [82, 73, 70, 70])
+  if (data.length > 12 && data[0] === 0x52 && data[1] === 0x49 && data[2] === 0x46 && data[3] === 0x46) {
+    const arrayBuffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer;
+    return await ctx.decodeAudioData(arrayBuffer);
+  }
+
+  // Headerless raw PCM fallback
+  const byteOffset = data.byteOffset;
+  const sampleCount = Math.floor(data.byteLength / 2);
+  const dataInt16 = new Int16Array(data.buffer, byteOffset, sampleCount);
+  const frameCount = Math.floor(dataInt16.length / numChannels);
   const buffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
   for (let channel = 0; channel < numChannels; channel++) {
     const channelData = buffer.getChannelData(channel);
@@ -221,10 +230,6 @@ const AIResult: React.FC<AIResultProps> = ({ diagnosis, patientName, patientGend
     if (cachedAudiosRef.current.has(index)) return;
     if (preFetchingChaptersRef.current.has(index)) return;
 
-    const apiKey = settings?.apiKey || (typeof process !== "undefined" ? process.env?.GEMINI_API_KEY : undefined);
-    const hasKey = apiKey && apiKey.trim() !== "" && apiKey.length > 10;
-    if (!hasKey) return;
-
     preFetchingChaptersRef.current.add(index);
     try {
       const activeVoiceName = selectedVoice;
@@ -255,7 +260,7 @@ const AIResult: React.FC<AIResultProps> = ({ diagnosis, patientName, patientGend
     utterance.lang = 'ar-SA';
 
     const voices = window.speechSynthesis.getVoices();
-    const arabicVoice = voices.find(v => v.lang.startsWith('ar'));
+    const arabicVoice = voices.find(v => v.lang.startsWith('ar') || v.lang.includes('Arabic'));
     if (arabicVoice) {
       utterance.voice = arabicVoice;
     }
@@ -301,10 +306,7 @@ const AIResult: React.FC<AIResultProps> = ({ diagnosis, patientName, patientGend
     }));
     setIsSpeaking(true);
 
-    const apiKey = settings?.apiKey || (typeof process !== "undefined" ? process.env?.GEMINI_API_KEY : undefined);
-    const hasKey = apiKey && apiKey.trim() !== "" && apiKey.length > 10;
-
-    if (selectedVoice === 'WebSpeech' || !hasKey) {
+    if (selectedVoice === 'WebSpeech') {
       const chapterText = chapters[index].text;
       speakWithWebSpeech(chapterText, sessionId, () => {
         if (sessionId !== speechSessionIdRef.current) return;
@@ -321,7 +323,6 @@ const AIResult: React.FC<AIResultProps> = ({ diagnosis, patientName, patientGend
       let buffer = cachedAudiosRef.current.get(index);
       
       if (!buffer) {
-        // Needs loading, add index to loadingChapters
         setLoadingChapters(prev => {
           const next = new Set(prev);
           next.add(index);
@@ -332,16 +333,16 @@ const AIResult: React.FC<AIResultProps> = ({ diagnosis, patientName, patientGend
         const chapterText = chapters[index].text;
         
         try {
-          // Fetch base64 audio with a fast 2.2 seconds timeout
+          // Fetch base64 audio with a generous 12 seconds timeout
           const speechPromise = generateSpeech(chapterText, settings || undefined, activeVoiceName);
           const timeoutPromise = new Promise<null>((_, reject) => 
-            setTimeout(() => reject(new Error("AUDIO_GENERATION_TIMEOUT")), 2200)
+            setTimeout(() => reject(new Error("AUDIO_GENERATION_TIMEOUT")), 12000)
           );
           
           const base64Audio = await Promise.race([speechPromise, timeoutPromise]);
           if (sessionId !== speechSessionIdRef.current) return;
           if (!base64Audio) {
-            throw new Error("No audio returned from high-fidelity Gemini TTS engine");
+            throw new Error("No audio returned from Gemini TTS engine");
           }
 
           const ctxClass = window.AudioContext || (window as any).webkitAudioContext;
@@ -355,7 +356,6 @@ const AIResult: React.FC<AIResultProps> = ({ diagnosis, patientName, patientGend
           
           if (sessionId !== speechSessionIdRef.current) return;
 
-          // Remove from loading set
           setLoadingChapters(prev => {
             const next = new Set(prev);
             next.delete(index);
