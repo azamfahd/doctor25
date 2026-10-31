@@ -1403,16 +1403,21 @@ export const SensorsHub: React.FC<SensorsHubProps> = ({
         }
       })();
     } catch (error: any) {
-      console.error(error);
+      console.warn("Serial access restricted:", error);
+      const isSecurity = error.name === 'SecurityError' || (error.message && error.message.includes('disallowed by permissions policy'));
+      const errorMsg = isSecurity 
+        ? "وصول السيريال (Serial) غير مسموح به في نافذة المعاينة الحالية (Permissions Policy). تم تحويل النظام بسلاسة إلى وضع المحاكاة الذكية المتقدمة لتجربة كافة المستشعرات بكفاءة عالية."
+        : `فشل الاتصال التسلسلي: ${error.message || error}`;
+
       setRawLogs((prev) => [
         ...prev,
-        `[سيريال خطأ] فشل الاتصال الحقيقي: ${error.message || error}`,
+        `[سيريال تحذير] ${errorMsg}`,
       ]);
-      alert(
-        `خطأ اتصال تسلسلي حقيقي: ${error.message || "يرجى فتح التطبيق في نافذة مستقلة جديدة خارج الـ iFrame لمنح المتصفح صلاحيات الـ USB والـ Serial."}`,
-      );
+      alert(errorMsg);
       setIsConnected(false);
       setIsReading(false);
+      // Automatically switch to demo mode for uninterrupted testing
+      setIsDemoMode(true);
     }
   };
 
