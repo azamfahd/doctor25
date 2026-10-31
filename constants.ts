@@ -21,4 +21,4 @@ export const STORAGE_KEYS = {
   RECORDS: 'smart_sage_records'
 };
 
-export const APP_VERSION = '4.0.5'; // سيتم تحديث هذا تلقائياً عند البناء عبر GitHub
+export const APP_VERSION = '4.5.0'; // تم الترقية إلى الإصدار المتقدم 4.5.0

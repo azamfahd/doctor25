@@ -11,22 +11,25 @@ export const UpdateNotification: React.FC = () => {
     const checkUpdates = async () => {
       try {
         const isNative = (window as any).Capacitor?.isNativePlatform?.();
-        // إذا كنا في تطبيق APK، نتحقق من النسخة الموجودة على السيرفر السحابي مباشرة
-        // نستخدم رابط النسخة المنشورة (Production URL)
-        const remoteUrl = isNative 
-          ? 'https://ais-pre-5ub5br47x3nr4byijtbcu7-119789279212.europe-west2.run.app/version.json'
-          : '/version.json';
+        
+        // التحقق من GitHub API للحصول على أحدث Release رسمي
+        const githubResponse = await fetch('https://api.github.com/repos/azamfahd25/Al-Hakim-Pro-Smart-Medical/releases/latest');
+        
+        if (githubResponse.ok) {
+          const releaseData = await githubResponse.json();
+          const latestTag = releaseData.tag_name; // مثلاً 4.5.12
 
-        const response = await fetch(`${remoteUrl}?t=${Date.now()}`);
-        if (response.ok) {
-          const data = await response.json();
-          if (data.version && data.version !== APP_VERSION) {
-            setNewVersion(data.version);
+          // تنظيف رقم الإصدار من الحروف (v) للمقارنة
+          const currentClean = APP_VERSION.replace('v', '');
+          const latestClean = latestTag.replace('v', '');
+
+          if (latestClean !== currentClean) {
+            setNewVersion(latestTag);
             setIsVisible(true);
           }
         }
       } catch (e) {
-        // فشل التحقق من التحديثات، نتجاهل الخطأ
+        // فشل التحقق، قد يكون بسبب حدود الـ API أو انقطاع الإنترنت
       }
     };
 

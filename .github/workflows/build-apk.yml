@@ -61,6 +61,8 @@ jobs:
           if [ ! -d "android" ]; then
             npx @capacitor/cli add android
           fi
+          # Generate native assets (icons/splash)
+          npm run cap:assets
           npx cap sync android
 
       - name: Build Android APK
