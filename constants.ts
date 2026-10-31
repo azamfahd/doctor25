@@ -5,9 +5,10 @@ export const INITIAL_SETTINGS: SystemSettings = {
   centerName: 'الحكيم الذكي Pro',
   doctorName: 'أحمد محمد',
   personality: AIPersonality.SIMPLE,
-  model: ModelType.PRO,
+  model: ModelType.AUTO,
+  autoModelRouting: true,
   deepThinking: true,
-  thinkingBudget: 16384, // القيمة الافتراضية
+  thinkingBudget: 16384, // يتم ضبطه وتخصيصه تلقائياً وذكياً بحسب تعقيد الحالة
   googleSearch: true,
   theme: ThemeMode.LIGHT,
   autoSave: true,

@@ -148,7 +148,7 @@ const Records: React.FC<RecordsProps> = ({
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-700 font-['Tajawal'] max-w-7xl mx-auto w-full">
+    <div className="space-y-6 animate-in fade-in duration-700 max-w-7xl mx-auto w-full">
       <input 
         type="file" 
         ref={importFileRef} 
@@ -186,13 +186,13 @@ const Records: React.FC<RecordsProps> = ({
         <div>
           <div className="flex items-center gap-2 mb-1">
             <h2 className="text-2xl font-black text-slate-900 tracking-tight">سجلات المرضى والأرشيف الطبي</h2>
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-black bg-emerald-50 text-emerald-700 border border-emerald-200">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              تخزين محلي مؤمّن ({records.length} سجل)
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              قاعدة بيانات SQLite محلية ({records.length} سجل)
             </span>
           </div>
-          <p className="text-slate-400 text-xs font-medium">
-            كافة البيانات والتقارير وصور الأشعة محفوظة محلياً (Offline-First) داخل جهازك وتستطيع الوصول إليها في أي وقت.
+          <p className="text-slate-500 text-xs sm:text-sm font-medium">
+            كافة البيانات والتقارير وصور الأشعة محفوظة محلياً في ذاكرة الهاتف الدائمة (محرك SQLite المدمج) وتعمل بدون إنترنت 100%.
           </p>
         </div>
 

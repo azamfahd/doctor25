@@ -156,23 +156,23 @@ const Dashboard: React.FC<DashboardProps> = ({ doctorName, records, onNewCase, o
         
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4 lg:gap-8">
           <div className="max-w-xl">
-            <div className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-cyan-500/10 rounded-full border border-cyan-500/20 mb-2 sm:mb-3">
-              <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-ping"></div>
-              <span className="text-[7.5px] lg:text-[9px] font-bold text-cyan-400 uppercase tracking-wider">نظام الحكيم المطور v4.0</span>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-cyan-500/10 rounded-full border border-cyan-500/20 mb-2 sm:mb-3">
+              <div className="w-2 h-2 bg-cyan-400 rounded-full animate-ping"></div>
+              <span className="text-xs font-bold text-cyan-300 uppercase tracking-wider">نظام الحكيم المطور v4.0</span>
             </div>
-            <h2 className="text-lg sm:text-xl lg:text-2xl font-black mb-2 sm:mb-3 leading-tight tracking-tight">مرحباً دكتور {doctorName.split(' ')[0]}</h2>
-            <p className="text-slate-400 text-[10px] sm:text-[11px] lg:text-xs font-medium mb-4 sm:mb-6 leading-relaxed max-w-md">الذكاء الاصطناعي جاهز لتحليل الحالات المعقدة وتوفير الوقت والجهد في التشخيص السريري الدقيق.</p>
+            <h2 className="text-xl sm:text-2xl lg:text-3xl font-black mb-2 sm:mb-3 leading-tight tracking-tight">مرحباً دكتور {doctorName.split(' ')[0]}</h2>
+            <p className="text-slate-300 text-xs sm:text-sm font-medium mb-4 sm:mb-6 leading-relaxed max-w-md">الذكاء الاصطناعي جاهز لتحليل الحالات المعقدة وتوفير الوقت والجهد في التشخيص السريري الدقيق.</p>
             <div className="flex flex-row gap-2 flex-wrap">
               <button 
                 onClick={onNewCase}
-                className="flex items-center justify-center gap-1.5 bg-cyan-600 hover:bg-cyan-500 text-white px-3.5 py-1.5 sm:px-4.5 sm:py-2 rounded-lg sm:rounded-xl font-bold text-[10px] sm:text-xs lg:text-sm transition-all shadow-md shadow-cyan-600/10 active:scale-95 group cursor-pointer"
+                className="flex items-center justify-center gap-2 bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all shadow-md shadow-cyan-600/10 active:scale-95 group cursor-pointer"
               >
-                <Plus className="w-3.5 h-3.5 transition-transform group-hover:rotate-90" />
+                <Plus className="w-4 h-4 transition-transform group-hover:rotate-90" />
                 بدء كشف جديد
               </button>
               <button 
                 onClick={onViewAll}
-                className="flex items-center justify-center gap-1.5 bg-white/5 hover:bg-white/10 backdrop-blur-md text-white px-3.5 py-1.5 sm:px-4.5 sm:py-2 rounded-lg sm:rounded-xl font-bold text-[10px] sm:text-xs lg:text-sm transition-all border border-white/10 cursor-pointer"
+                className="flex items-center justify-center gap-2 bg-white/10 hover:bg-white/15 backdrop-blur-md text-white px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all border border-white/10 cursor-pointer"
               >
                 سجلات المرضى
               </button>
@@ -187,47 +187,47 @@ const Dashboard: React.FC<DashboardProps> = ({ doctorName, records, onNewCase, o
 
       {/* Quick Actions / Navigation */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2 sm:gap-3 lg:gap-4">
-        <button onClick={() => onNavigate?.('diagnosis')} className="w-full p-2.5 sm:p-3.5 lg:p-4 bg-white text-slate-800 rounded-xl sm:rounded-xl lg:rounded-2xl transition-all flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-2 lg:gap-3 group pro-3d-card glow-border-blue cursor-pointer">
-          <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-blue-50 group-hover:bg-blue-100 flex items-center justify-center transition-colors shrink-0">
-            <Stethoscope className="w-4 h-4 sm:w-4.5 sm:h-4.5 lg:w-5 lg:h-5 text-blue-600 group-hover:scale-110 transition-transform" />
+        <button onClick={() => onNavigate?.('diagnosis')} className="w-full p-3 sm:p-3.5 lg:p-4 bg-white text-slate-800 rounded-xl sm:rounded-2xl transition-all flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-2.5 lg:gap-3 group pro-3d-card glow-border-blue cursor-pointer">
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-blue-50 group-hover:bg-blue-100 flex items-center justify-center transition-colors shrink-0">
+            <Stethoscope className="w-4.5 h-4.5 text-blue-600 group-hover:scale-110 transition-transform" />
           </div>
-          <span className="font-bold text-[10px] sm:text-[11px] lg:text-xs group-hover:text-blue-600 transition-colors">تشخيص جديد</span>
+          <span className="font-bold text-xs sm:text-sm group-hover:text-blue-600 transition-colors">تشخيص جديد</span>
         </button>
-        <button onClick={() => onNavigate?.('sensors')} className="w-full p-2.5 sm:p-3.5 lg:p-4 bg-white text-slate-800 rounded-xl sm:rounded-xl lg:rounded-2xl transition-all flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-2 lg:gap-3 group pro-3d-card glow-border-cyan cursor-pointer">
-          <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-cyan-50 group-hover:bg-cyan-100 flex items-center justify-center transition-colors shrink-0">
-            <Activity className="w-4 h-4 sm:w-4.5 sm:h-4.5 lg:w-5 lg:h-5 text-cyan-600 group-hover:scale-110 transition-transform" />
+        <button onClick={() => onNavigate?.('sensors')} className="w-full p-3 sm:p-3.5 lg:p-4 bg-white text-slate-800 rounded-xl sm:rounded-2xl transition-all flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-2.5 lg:gap-3 group pro-3d-card glow-border-cyan cursor-pointer">
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-cyan-50 group-hover:bg-cyan-100 flex items-center justify-center transition-colors shrink-0">
+            <Activity className="w-4.5 h-4.5 text-cyan-600 group-hover:scale-110 transition-transform" />
           </div>
-          <span className="font-bold text-[10px] sm:text-[11px] lg:text-xs group-hover:text-cyan-600 transition-colors">المستشعرات الحيوية</span>
+          <span className="font-bold text-xs sm:text-sm group-hover:text-cyan-600 transition-colors">المستشعرات الحيوية</span>
         </button>
-        <button onClick={() => onNavigate?.('records')} className="w-full p-2.5 sm:p-3.5 lg:p-4 bg-white text-slate-800 rounded-xl sm:rounded-xl lg:rounded-2xl transition-all flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-2 lg:gap-3 group pro-3d-card glow-border-emerald cursor-pointer">
-          <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-emerald-50 group-hover:bg-emerald-100 flex items-center justify-center transition-colors shrink-0">
-            <Users className="w-4 h-4 sm:w-4.5 sm:h-4.5 lg:w-5 lg:h-5 text-emerald-600 group-hover:scale-110 transition-transform" />
+        <button onClick={() => onNavigate?.('records')} className="w-full p-3 sm:p-3.5 lg:p-4 bg-white text-slate-800 rounded-xl sm:rounded-2xl transition-all flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-2.5 lg:gap-3 group pro-3d-card glow-border-emerald cursor-pointer">
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-50 group-hover:bg-emerald-100 flex items-center justify-center transition-colors shrink-0">
+            <Users className="w-4.5 h-4.5 text-emerald-600 group-hover:scale-110 transition-transform" />
           </div>
-          <span className="font-bold text-[10px] sm:text-[11px] lg:text-xs group-hover:text-emerald-600 transition-colors">سجلات المرضى</span>
+          <span className="font-bold text-xs sm:text-sm group-hover:text-emerald-600 transition-colors">سجلات المرضى</span>
         </button>
-        <button onClick={() => onNavigate?.('analytics')} className="w-full p-2.5 sm:p-3.5 lg:p-4 bg-white text-slate-800 rounded-xl sm:rounded-xl lg:rounded-2xl transition-all flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-2 lg:gap-3 group pro-3d-card glow-border-violet cursor-pointer">
-          <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-violet-50 group-hover:bg-violet-100 flex items-center justify-center transition-colors shrink-0">
-            <BarChart2 className="w-4 h-4 sm:w-4.5 sm:h-4.5 lg:w-5 lg:h-5 text-violet-600 group-hover:scale-110 transition-transform" />
+        <button onClick={() => onNavigate?.('analytics')} className="w-full p-3 sm:p-3.5 lg:p-4 bg-white text-slate-800 rounded-xl sm:rounded-2xl transition-all flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-2.5 lg:gap-3 group pro-3d-card glow-border-violet cursor-pointer">
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-violet-50 group-hover:bg-violet-100 flex items-center justify-center transition-colors shrink-0">
+            <BarChart2 className="w-4.5 h-4.5 text-violet-600 group-hover:scale-110 transition-transform" />
           </div>
-          <span className="font-bold text-[10px] sm:text-[11px] lg:text-xs group-hover:text-violet-600 transition-colors">التحليل البصري</span>
+          <span className="font-bold text-xs sm:text-sm group-hover:text-violet-600 transition-colors">التحليل البصري</span>
         </button>
-        <button onClick={() => onNavigate?.('powerbi')} className="w-full p-2.5 sm:p-3.5 lg:p-4 bg-white text-slate-800 rounded-xl sm:rounded-xl lg:rounded-2xl transition-all flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-2 lg:gap-3 group pro-3d-card glow-border-amber cursor-pointer">
-          <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-amber-50 group-hover:bg-amber-100 flex items-center justify-center transition-colors shrink-0">
-            <TrendingUp className="w-4 h-4 sm:w-4.5 sm:h-4.5 lg:w-5 lg:h-5 text-amber-600 group-hover:scale-110 transition-transform" />
+        <button onClick={() => onNavigate?.('powerbi')} className="w-full p-3 sm:p-3.5 lg:p-4 bg-white text-slate-800 rounded-xl sm:rounded-2xl transition-all flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-2.5 lg:gap-3 group pro-3d-card glow-border-amber cursor-pointer">
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-amber-50 group-hover:bg-amber-100 flex items-center justify-center transition-colors shrink-0">
+            <TrendingUp className="w-4.5 h-4.5 text-amber-600 group-hover:scale-110 transition-transform" />
           </div>
-          <span className="font-bold text-[10px] sm:text-[11px] lg:text-xs group-hover:text-amber-600 transition-colors">التحليل الذكي (Power BI)</span>
+          <span className="font-bold text-xs sm:text-sm group-hover:text-amber-600 transition-colors">التحليل الذكي (Power BI)</span>
         </button>
-        <button onClick={() => onNavigate?.('consult')} className="w-full p-2.5 sm:p-3.5 lg:p-4 bg-white text-slate-800 rounded-xl sm:rounded-xl lg:rounded-2xl transition-all flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-2 lg:gap-3 group pro-3d-card glow-border-blue cursor-pointer">
-          <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-indigo-50 group-hover:bg-indigo-100 flex items-center justify-center transition-colors shrink-0">
-            <Mic className="w-4 h-4 sm:w-4.5 sm:h-4.5 lg:w-5 lg:h-5 text-indigo-600 group-hover:scale-110 transition-transform" />
+        <button onClick={() => onNavigate?.('consult')} className="w-full p-3 sm:p-3.5 lg:p-4 bg-white text-slate-800 rounded-xl sm:rounded-2xl transition-all flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-2.5 lg:gap-3 group pro-3d-card glow-border-blue cursor-pointer">
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-indigo-50 group-hover:bg-indigo-100 flex items-center justify-center transition-colors shrink-0">
+            <Mic className="w-4.5 h-4.5 text-indigo-600 group-hover:scale-110 transition-transform" />
           </div>
-          <span className="font-bold text-[10px] sm:text-[11px] lg:text-xs group-hover:text-indigo-600 transition-colors">جلسات المتابعة</span>
+          <span className="font-bold text-xs sm:text-sm group-hover:text-indigo-600 transition-colors">جلسات المتابعة</span>
         </button>
-        <button onClick={() => onNavigate?.('settings')} className="w-full p-2.5 sm:p-3.5 lg:p-4 bg-white text-slate-800 rounded-xl sm:rounded-xl lg:rounded-2xl transition-all flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-2 lg:gap-3 group pro-3d-card glow-border-slate cursor-pointer">
-          <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-slate-50 group-hover:bg-slate-100 flex items-center justify-center transition-colors shrink-0">
-            <Settings className="w-4 h-4 sm:w-4.5 sm:h-4.5 lg:w-5 lg:h-5 text-slate-600 group-hover:rotate-45 transition-transform" />
+        <button onClick={() => onNavigate?.('settings')} className="w-full p-3 sm:p-3.5 lg:p-4 bg-white text-slate-800 rounded-xl sm:rounded-2xl transition-all flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-2.5 lg:gap-3 group pro-3d-card glow-border-slate cursor-pointer">
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-50 group-hover:bg-slate-100 flex items-center justify-center transition-colors shrink-0">
+            <Settings className="w-4.5 h-4.5 text-slate-600 group-hover:rotate-45 transition-transform" />
           </div>
-          <span className="font-bold text-[10px] sm:text-[11px] lg:text-xs group-hover:text-slate-800 transition-colors">إعدادات النظام</span>
+          <span className="font-bold text-xs sm:text-sm group-hover:text-slate-800 transition-colors">إعدادات النظام</span>
         </button>
       </div>
 
@@ -246,18 +246,18 @@ const Dashboard: React.FC<DashboardProps> = ({ doctorName, records, onNewCase, o
                   <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${isThinking ? 'bg-indigo-400' : 'bg-blue-400'} opacity-75`}></span>
                   <span className={`relative inline-flex rounded-full h-2 w-2 ${isThinking ? 'bg-indigo-500' : 'bg-blue-500'}`}></span>
                 </span>
-                <span className="text-[8px] sm:text-[9px] font-bold text-slate-300 uppercase tracking-wider">{isThinking ? 'تفكير عميق...' : 'نشط'}</span>
+                <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">{isThinking ? 'تفكير عميق...' : 'نشط'}</span>
               </div>
             </div>
             <div className="relative z-10">
-              <h3 className="text-[8px] sm:text-[9px] font-bold text-blue-400 uppercase tracking-widest mb-1">محرك المعالجة النشط</h3>
+              <h3 className="text-xs font-bold text-blue-400 uppercase tracking-widest mb-1">محرك المعالجة النشط</h3>
               <p className="text-sm sm:text-base lg:text-lg font-bold text-white flex items-center gap-1.5">
                 {getModelDisplayName(activeModel)}
                 {isThinking && <Zap className="w-3.5 h-3.5 text-amber-400 fill-amber-400 animate-pulse" />}
               </p>
-              <div className="mt-2.5 flex gap-1">
-                <span className="px-1.5 py-0.5 bg-white/5 rounded text-[7px] font-bold uppercase text-slate-300 border border-white/5">Deep Thinking</span>
-                <span className="px-1.5 py-0.5 bg-white/5 rounded text-[7px] font-bold uppercase text-slate-300 border border-white/5">Multi-Modal</span>
+              <div className="mt-2.5 flex gap-1.5 flex-wrap">
+                <span className="px-2 py-0.5 bg-white/10 rounded-md text-xs font-semibold text-slate-200 border border-white/10">Deep Thinking</span>
+                <span className="px-2 py-0.5 bg-white/10 rounded-md text-xs font-semibold text-slate-200 border border-white/10">Multi-Modal</span>
               </div>
             </div>
           </div>
@@ -268,11 +268,11 @@ const Dashboard: React.FC<DashboardProps> = ({ doctorName, records, onNewCase, o
               <div className="flex justify-between items-center mb-2">
                 <div className="flex items-center gap-2">
                   <div className="w-7 h-7 sm:w-8 sm:h-8 bg-emerald-500/10 rounded-lg flex items-center justify-center text-emerald-400 shrink-0">
-                    <Database className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    <Database className="w-4 h-4" />
                   </div>
-                  <h3 className="text-slate-400 text-[9px] sm:text-[10px] lg:text-xs font-semibold">إجمالي الحالات</h3>
+                  <h3 className="text-slate-300 text-xs sm:text-sm font-semibold">إجمالي الحالات</h3>
                 </div>
-                <span className="text-[8px] sm:text-[9px] font-bold text-emerald-400 bg-emerald-400/10 px-1.5 py-0.5 rounded-full">+12%</span>
+                <span className="text-xs font-bold text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full">+12%</span>
               </div>
               <div className="text-right">
                 <p className="text-xl sm:text-2xl lg:text-3xl font-black text-white">{records.length}</p>
@@ -283,11 +283,11 @@ const Dashboard: React.FC<DashboardProps> = ({ doctorName, records, onNewCase, o
               <div className="flex justify-between items-center mb-2">
                 <div className="flex items-center gap-2">
                   <div className="w-7 h-7 sm:w-8 sm:h-8 bg-indigo-500/10 rounded-lg flex items-center justify-center text-indigo-400 shrink-0">
-                    <Award className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    <Award className="w-4 h-4" />
                   </div>
-                  <h3 className="text-slate-400 text-[9px] sm:text-[10px] lg:text-xs font-semibold">دقة خوارزميات النظام</h3>
+                  <h3 className="text-slate-300 text-xs sm:text-sm font-semibold">دقة خوارزميات النظام</h3>
                 </div>
-                <span className="text-[8px] sm:text-[9px] font-bold text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded-full">تعلم مستمر</span>
+                <span className="text-xs font-bold text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-full">تعلم مستمر</span>
               </div>
               <div className="text-right">
                 <p className="text-xl sm:text-2xl lg:text-3xl font-black text-white tracking-tight">{currentAccuracy.toFixed(2)}<span className="text-xs lg:text-sm text-slate-500 ml-0.5">%</span></p>
@@ -302,9 +302,9 @@ const Dashboard: React.FC<DashboardProps> = ({ doctorName, records, onNewCase, o
         <div className="lg:col-span-2 pro-3d-card glow-border-purple overflow-hidden shadow-md animate-in fade-in duration-1000">
           <div className="p-4 sm:p-5 border-b border-slate-50 flex items-center justify-between">
             <h3 className="font-bold text-slate-900 text-xs sm:text-sm lg:text-base flex items-center gap-1.5 sm:gap-2">
-              <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600" /> آخر السجلات السريرية
+              <Clock className="w-4 h-4 text-blue-600" /> آخر السجلات السريرية
             </h3>
-            <button onClick={onViewAll} className="text-[8px] sm:text-[9px] font-bold text-blue-600 hover:underline cursor-pointer">عرض كافة السجلات</button>
+            <button onClick={onViewAll} className="text-xs font-bold text-blue-600 hover:underline cursor-pointer">عرض كافة السجلات</button>
           </div>
           <div className="p-0">
             {recentRecords.length > 0 ? (
@@ -336,7 +336,7 @@ const Dashboard: React.FC<DashboardProps> = ({ doctorName, records, onNewCase, o
                             </div>
                             <div>
                               <h4 className="font-bold text-slate-900 text-sm mb-0.5 group-hover:text-blue-600 transition-colors leading-snug">{record.name}</h4>
-                              <span className="text-[11px] text-slate-400 font-mono tabular-nums">{record.date}</span>
+                              <span className="text-xs text-slate-400 font-mono tabular-nums">{record.date}</span>
                             </div>
                           </div>
                         </td>
@@ -369,7 +369,7 @@ const Dashboard: React.FC<DashboardProps> = ({ doctorName, records, onNewCase, o
                 <div className="w-10 h-10 sm:w-12 sm:h-12 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-2 shrink-0">
                   <Database className="w-5 h-5 sm:w-6 sm:h-6 text-slate-200" />
                 </div>
-                <p className="text-slate-400 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider">لا توجد سجلات حالية</p>
+                <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">لا توجد سجلات حالية</p>
               </div>
             )}
           </div>
@@ -378,15 +378,15 @@ const Dashboard: React.FC<DashboardProps> = ({ doctorName, records, onNewCase, o
         <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl lg:rounded-2xl p-4 sm:p-5 text-white shadow-md relative overflow-hidden flex flex-col justify-center">
           <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10 blur-xl opacity-85"></div>
           <h4 className="text-sm sm:text-base font-bold mb-2 relative z-10">تحديثات النظام</h4>
-          <p className="text-blue-100 text-[9px] sm:text-[10px] font-medium leading-relaxed mb-3 relative z-10">تم تحديث قاعدة البيانات الطبية لتشمل أحدث البروتوكولات العلاجية لعام 2026.</p>
+          <p className="text-blue-100 text-xs font-medium leading-relaxed mb-3 relative z-10">تم تحديث قاعدة البيانات الطبية لتشمل أحدث البروتوكولات العلاجية لعام 2026.</p>
           <div className="space-y-1.5 relative z-10">
             <div className="flex items-center gap-2 p-1.5 bg-white/10 rounded-lg border border-white/5">
-              <div className="w-1 h-1 bg-emerald-400 rounded-full"></div>
-              <span className="text-[8px] font-bold uppercase">تحسين سرعة التحليل</span>
+              <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full"></div>
+              <span className="text-xs font-bold">تحسين سرعة التحليل السريري</span>
             </div>
             <div className="flex items-center gap-2 p-1.5 bg-white/10 rounded-lg border border-white/5">
-              <div className="w-1 h-1 bg-emerald-400 rounded-full"></div>
-              <span className="text-[8px] font-bold uppercase">دعم الأشعة المقطعية</span>
+              <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full"></div>
+              <span className="text-xs font-bold">دعم الأشعة المقطعية المتعددة</span>
             </div>
           </div>
         </div>

@@ -15,7 +15,18 @@ import { analyzeMedicalCase } from './services/geminiService.ts';
 import { MessageSquare, Activity, Home } from 'lucide-react';
 import { supabase } from './src/lib/supabase.ts';
 import { Session } from '@supabase/supabase-js';
-import { db, saveRecordLocally, loadAllLocalRecords, exportDatabaseBackup, importDatabaseBackup } from './src/db/localDb.ts';
+import { 
+  db, 
+  saveRecordLocally, 
+  deleteRecordLocally, 
+  bulkSaveRecordsLocally, 
+  loadAllLocalRecords, 
+  exportDatabaseBackup, 
+  importDatabaseBackup,
+  getCurrentLocalUser,
+  saveLocalUser,
+  LocalUser
+} from './src/db/localDb.ts';
 import { SensorsHub } from './components/SensorsHub.tsx';
 
 const App: React.FC = () => {
@@ -30,20 +41,39 @@ const App: React.FC = () => {
   const [transferredVitals, setTransferredVitals] = useState<VitalSigns | undefined>(undefined);
 
   useEffect(() => {
+    // 1. Load active local doctor account and settings
+    const activeLocalUser = getCurrentLocalUser();
     const savedSettings = localStorage.getItem(STORAGE_KEYS.SETTINGS);
-    if (savedSettings) setSettings(JSON.parse(savedSettings));
+    if (savedSettings) {
+      setSettings(JSON.parse(savedSettings));
+    } else if (activeLocalUser) {
+      setSettings(prev => ({
+        ...prev,
+        doctorName: activeLocalUser.name.replace(/^د\.\s*/, ''),
+        centerName: activeLocalUser.centerName || prev.centerName
+      }));
+    }
     
-    // Check active session & initialize offline DB
+    // 2. Instantly load local records from IndexedDB/localStorage (zero-latency offline access)
+    loadLocalRecords();
+
+    // 3. Check session in background without blocking offline UI
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      fetchRecords(session);
+      if (session) {
+        fetchRecords(session);
+      }
+    }).catch((err) => {
+      console.log('Operating in pure local offline mode:', err);
     });
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
-      fetchRecords(session);
+      if (session) {
+        fetchRecords(session);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -127,12 +157,12 @@ const App: React.FC = () => {
           }
         }
 
-        // 5. حفظ البيانات المدمجة بالكامل والموثوقة في IndexedDB وتحديث واجهة المستخدم
+        // 5. حفظ البيانات المدمجة بالكامل والموثوقة في التخزين المحلي المتعدد (IndexedDB + Snapshot)
         if (finalMergedRecords.length > 0) {
-          await db.records.bulkPut(finalMergedRecords);
+          await bulkSaveRecordsLocally(finalMergedRecords);
           
-          // ترتيب السجلات تنازلياً حسب المعرِّف (وهو الطابع الزمني) لعرض الحالات الأحدث أولاً
-          const sorted = [...finalMergedRecords].sort((a, b) => b.id.localeCompare(a.id));
+          // ترتيب السجلات تنازلياً لعرض الحالات الأحدث أولاً
+          const sorted = [...finalMergedRecords].sort((a, b) => Number(b.id || 0) - Number(a.id || 0) || b.id.localeCompare(a.id));
           setRecords(sorted);
         }
       } catch (err) {
@@ -146,33 +176,40 @@ const App: React.FC = () => {
       const localData = await loadAllLocalRecords();
       
       if (localData.length === 0) {
-        // Mock default data for showcase only if totally empty
-        const mockData: PatientCase[] = [
-          {
-            id: 'mock-1',
-            date: new Date().toISOString().split('T')[0],
-            name: 'أحمد عبدالله',
-            age: '45',
-            gender: 'ذكر',
-            status: 'حرجة',
-            symptoms: 'ألم في الصدر، ضيق تنفس',
-            vitals: { bloodPressure: '140/90', pulse: '88', temperature: '37.1', spo2: '96' }
-          },
-          {
-            id: 'mock-2',
-            date: new Date(Date.now() - 86400000).toISOString().split('T')[0],
-            name: 'فاطمة سالم',
-            age: '62',
-            gender: 'أنثى',
-            status: 'مستقرة',
-            symptoms: 'تعب عام وإرهاق',
-            vitals: { bloodPressure: '120/80', pulse: '72', temperature: '36.8', spo2: '99' }
-          }
-        ];
-        await db.records.bulkPut(mockData);
-        setRecords(mockData);
+        // Only seed showcase data if user has never initialized the app
+        const isEverInitialized = localStorage.getItem('alhakim_initialized_before');
+        if (!isEverInitialized) {
+          const mockData: PatientCase[] = [
+            {
+              id: 'mock-1',
+              date: new Date().toLocaleDateString('ar-EG'),
+              name: 'أحمد عبدالله',
+              age: '45',
+              gender: 'ذكر',
+              status: 'حرجة',
+              symptoms: 'ألم في الصدر، ضيق تنفس',
+              vitals: { bloodPressure: '140/90', pulse: '88', temperature: '37.1', spo2: '96' }
+            },
+            {
+              id: 'mock-2',
+              date: new Date(Date.now() - 86400000).toLocaleDateString('ar-EG'),
+              name: 'فاطمة سالم',
+              age: '62',
+              gender: 'أنثى',
+              status: 'مستقرة',
+              symptoms: 'تعب عام وإرهاق',
+              vitals: { bloodPressure: '120/80', pulse: '72', temperature: '36.8', spo2: '99' }
+            }
+          ];
+          await bulkSaveRecordsLocally(mockData);
+          setRecords(mockData);
+          localStorage.setItem('alhakim_initialized_before', 'true');
+        } else {
+          setRecords([]);
+        }
       } else {
         setRecords(localData);
+        localStorage.setItem('alhakim_initialized_before', 'true');
       }
     } catch (err) {
       console.error("Local DB fetch error:", err);
@@ -212,8 +249,7 @@ const App: React.FC = () => {
     setRecords(newRecords);
     
     try {
-      await db.records.clear();
-      await db.records.bulkPut(newRecords);
+      await bulkSaveRecordsLocally(newRecords);
     } catch(e) { console.error('Bulk save local fail:', e); }
 
     if (session) {
@@ -267,8 +303,10 @@ const App: React.FC = () => {
     setRecords(updated);
     
     try {
-      await db.records.delete(id as any);
-    } catch(err) {}
+      await deleteRecordLocally(id);
+    } catch(err) {
+      console.warn("Error deleting record locally:", err);
+    }
 
     if (session) {
       try {
@@ -288,6 +326,14 @@ const App: React.FC = () => {
   const updateSettings = (newSettings: SystemSettings) => {
     setSettings(newSettings);
     localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(newSettings));
+    try {
+      const activeUser = getCurrentLocalUser();
+      saveLocalUser({
+        ...activeUser,
+        name: newSettings.doctorName.startsWith('د.') ? newSettings.doctorName : `د. ${newSettings.doctorName}`,
+        centerName: newSettings.centerName
+      }).catch(() => {});
+    } catch (e) {}
   };
 
   const handleAnalysis = async (patientData: Partial<PatientCase>) => {

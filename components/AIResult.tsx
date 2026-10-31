@@ -629,7 +629,7 @@ const AIResult: React.FC<AIResultProps> = ({ diagnosis, patientName, patientGend
   return (
     <>
       {/* Interactive Screen View */}
-      <div className="bg-[#F8FAFC] w-full min-h-full relative lg:rounded-3xl overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-500 font-['Tajawal'] shrink-0 print:hidden" ref={pdfRef}>
+      <div className="bg-[#F8FAFC] w-full min-h-full relative lg:rounded-3xl overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-500 shrink-0 print:hidden" ref={pdfRef}>
       {/* Dynamic Header */}
       <div className={`${severityColors[diagnosis.severity] || 'bg-blue-600'} p-5 lg:p-10 text-white relative overflow-hidden`}>
         {/* Background Decorative Pattern */}
@@ -774,12 +774,12 @@ const AIResult: React.FC<AIResultProps> = ({ diagnosis, patientName, patientGend
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 {/* ضبط الطبيب والسرعة */}
                 <div className="flex flex-wrap items-center gap-2">
-                  <div className="flex items-center gap-1 bg-white p-1 rounded-lg border border-slate-200/60 shadow-sm">
-                    <span className="text-[9px] font-black text-slate-400 px-1 font-['Tajawal']">الطبيب المعلق:</span>
+                  <div className="flex items-center gap-1.5 bg-white p-1.5 rounded-lg border border-slate-200/60 shadow-sm">
+                    <span className="text-xs font-bold text-slate-500 px-1">الطبيب المعلق:</span>
                     <select
                       value={selectedVoice}
                       onChange={(e) => handleVoiceChange(e.target.value)}
-                      className="bg-transparent text-[10px] font-black text-slate-700 px-1 py-0.5 focus:outline-none cursor-pointer"
+                      className="bg-transparent text-xs font-bold text-slate-700 px-1 py-0.5 focus:outline-none cursor-pointer"
                     >
                       <option value="WebSpeech">القارئ الفوري الذكي (فائق السرعة ومجاني ⚡)</option>
                       <option value="Zephyr">د. سمير (استشاري سحابي)</option>
@@ -790,8 +790,8 @@ const AIResult: React.FC<AIResultProps> = ({ diagnosis, patientName, patientGend
                     </select>
                   </div>
 
-                  <div className="flex items-center gap-1 bg-white p-1 rounded-lg border border-slate-200/60 shadow-sm">
-                    <span className="text-[9px] font-black text-slate-400 px-1 font-['Tajawal']">السرعة:</span>
+                  <div className="flex items-center gap-1 bg-white p-1.5 rounded-lg border border-slate-200/60 shadow-sm">
+                    <span className="text-xs font-bold text-slate-500 px-1">السرعة:</span>
                     {[1.0, 1.25, 1.5, 2.0].map((rate) => (
                       <button
                         key={rate}
@@ -808,7 +808,7 @@ const AIResult: React.FC<AIResultProps> = ({ diagnosis, patientName, patientGend
                             return newState;
                           });
                         }}
-                        className={`px-1.5 py-0.5 text-[9px] font-black rounded transition-all cursor-pointer ${speechState.playbackRate === rate ? 'bg-blue-600 text-white font-bold' : 'text-slate-500 hover:bg-slate-100'}`}
+                        className={`px-2 py-0.5 text-xs font-bold rounded transition-all cursor-pointer ${speechState.playbackRate === rate ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
                       >
                         {rate}x
                       </button>
@@ -825,9 +825,9 @@ const AIResult: React.FC<AIResultProps> = ({ diagnosis, patientName, patientGend
                       }
                     }}
                     disabled={speechState.currentChapter === 0}
-                    className="p-1 px-2.5 bg-white hover:bg-slate-50 disabled:opacity-30 rounded-lg border border-slate-200 text-slate-600 cursor-pointer text-[10px] font-bold flex items-center gap-1 transition-all disabled:cursor-not-allowed"
+                    className="p-1 px-3 bg-white hover:bg-slate-50 disabled:opacity-30 rounded-lg border border-slate-200 text-slate-700 cursor-pointer text-xs font-bold flex items-center gap-1 transition-all disabled:cursor-not-allowed"
                   >
-                    السابق <ChevronRight className="w-3 h-3" />
+                    السابق <ChevronRight className="w-3.5 h-3.5" />
                   </button>
 
                   <button 
@@ -837,16 +837,16 @@ const AIResult: React.FC<AIResultProps> = ({ diagnosis, patientName, patientGend
                       }
                     }}
                     disabled={speechState.currentChapter === chapters.length - 1}
-                    className="p-1 px-2.5 bg-white hover:bg-slate-50 disabled:opacity-30 rounded-lg border border-slate-200 text-slate-600 cursor-pointer text-[10px] font-bold flex items-center gap-1 transition-all disabled:cursor-not-allowed"
+                    className="p-1 px-3 bg-white hover:bg-slate-50 disabled:opacity-30 rounded-lg border border-slate-200 text-slate-700 cursor-pointer text-xs font-bold flex items-center gap-1 transition-all disabled:cursor-not-allowed"
                   >
-                    <ChevronLeft className="w-3 h-3" /> التالي
+                    <ChevronLeft className="w-3.5 h-3.5" /> التالي
                   </button>
                 </div>
               </div>
 
               {/* الفهرس التفاعلي للأقسام الطبية المتاحة */}
-              <div className="border-t border-slate-200/60 pt-2">
-                <p className="text-[8px] font-black text-slate-400 mb-1.5 font-['Tajawal']">انقر لتشغيل أي قسم طبي مباشرة:</p>
+              <div className="border-t border-slate-200/60 pt-2.5">
+                <p className="text-xs font-bold text-slate-500 mb-2">انقر لتشغيل أي قسم طبي مباشرة:</p>
                 <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
                   {chapters.map((chapter, index) => {
                     const isActive = speechState.isPlaying && speechState.currentChapter === index;
@@ -1176,7 +1176,7 @@ const AIResult: React.FC<AIResultProps> = ({ diagnosis, patientName, patientGend
     </div>
 
       {/* Print View: Formal Medical Prescription */}
-      <div className="hidden print:block print:w-full print:bg-white print:p-8 font-['Tajawal'] text-slate-900" dir="rtl">
+      <div className="hidden print:block print:w-full print:bg-white print:p-8 text-slate-900" dir="rtl">
         {/* Prescription Header */}
         <div className="flex justify-between items-start border-b-2 border-slate-900 pb-6 mb-8">
           <div>

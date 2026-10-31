@@ -641,7 +641,7 @@ const ConsultSession: React.FC<ConsultSessionProps> = ({ patient, settings, onCl
                </button>
              )}
              <div className="flex items-center gap-1.5 bg-white/5 p-1.5 px-2.5 rounded-lg lg:rounded-xl border border-white/10 shadow-lg">
-               <span className="text-[9px] font-black text-slate-400 px-1 font-['Tajawal'] hidden md:inline">صوت المستشار:</span>
+               <span className="text-xs font-bold text-slate-300 px-1 hidden md:inline">صوت المستشار:</span>
                <select
                  value={selectedVoice}
                  onChange={(e) => {

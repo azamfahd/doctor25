@@ -1,5 +1,6 @@
 import { GoogleGenAI, GenerateContentResponse, Type, Chat, Modality } from "@google/genai";
 import { SystemSettings, PatientCase, StructuredDiagnosis, ModelType } from '../types.ts';
+import { getSimulatedDiagnosis as getAdvancedSimulatedDiagnosis } from './clinicalEngine.ts';
 
 const cleanJsonResponse = (text: string): string => {
   return text.replace(/```json/g, "").replace(/```/g, "").trim();
@@ -31,6 +32,11 @@ const getModelSpecificInstructions = (model: ModelType, personality: string): st
 يجب أن يكون الرد بتنسيق JSON حصرياً.`;
 
   switch (model) {
+    case ModelType.AUTO:
+      return `${baseInstruction}
+      تخصصك: كبير الأطباء الاستشاريين ورئيس المجلس الطبي للتشخيص السريري الذكي التلقائي (Chief Medical Officer & Autonomous Clinical Diagnostic Authority).
+      مطلوب منك: تحليل الحالة بصورة متكاملة وذكية وتلقائية بالكامل. اربط الفحوصات المخبرية والأعراض وصور الأشعة والمؤشرات الحيوية مع الفسيولوجيا المرضية (Pathophysiology)، وقدّم تشخيصاً استدلالياً دقيقاً وتفريقياً احترافياً وخطة علاجية وتغذوية شاملة مبنية على أحدث الأدلة الطبية.`;
+    
     case ModelType.PRO:
       return `${baseInstruction}
       تخصصك: استشاري أول في الطب الباطني والحالات المعقدة (Internal Medicine & Complex Cases).
@@ -107,6 +113,10 @@ const getModelSpecificPrompt = (model: ModelType, patientData: Partial<PatientCa
    ========================================================================= */
 
 export const getSimulatedDiagnosis = (patientData: Partial<PatientCase>): StructuredDiagnosis => {
+  return getAdvancedSimulatedDiagnosis(patientData);
+};
+
+export const getLegacySimulatedDiagnosis = (patientData: Partial<PatientCase>): StructuredDiagnosis => {
   const symptomsLower = (patientData.symptoms || "").toLowerCase();
   
   let category = "fatigue";
@@ -600,6 +610,74 @@ export const getSimulatedChatResponse = (patient: PatientCase, messageText: stri
 };
 
 /* =========================================================================
+   AUTONOMOUS CLINICAL MODEL & REASONING ORCHESTRATOR
+   ========================================================================= */
+
+export const resolveSmartClinicalModelAndBudget = (
+  patientData: Partial<PatientCase>,
+  settings?: SystemSettings
+): {
+  modelName: string;
+  thinkingBudget: number;
+  reasoningMode: string;
+  capabilities: string[];
+} => {
+  const hasImages = patientData?.images && Array.isArray(patientData.images) && patientData.images.length > 0;
+  const symptomsText = ((patientData?.symptoms || '') + ' ' + (patientData?.notes || '') + ' ' + (patientData?.medicalHistory || '')).toLowerCase();
+  const hasLabKeywords = /(تحليل|مختبر|فحص|cbc|creatinine|blood sugar|glucose|ecg|troponin|alt|ast|inr|wbc|crp|esr|رنين|أشعة|x-ray|ct scan|mri|sonar|ultrasound)/i.test(symptomsText);
+  
+  const vitals: any = patientData?.vitals || {};
+  const isHighRiskVitals = 
+    (vitals.spo2 && parseInt(vitals.spo2) < 92) ||
+    (vitals.pulse && (parseInt(vitals.pulse) > 120 || parseInt(vitals.pulse) < 50)) ||
+    (vitals.temperature && parseFloat(vitals.temperature) >= 39);
+
+  const isAuto = !settings?.model || settings.model === ModelType.AUTO || settings.autoModelRouting !== false;
+
+  if (isAuto) {
+    if (hasImages) {
+      return {
+        modelName: 'gemini-3.1-pro-preview',
+        thinkingBudget: 24576,
+        reasoningMode: 'فحص إشعاعي وبصري متعدد الوسائط واستدلال سريري عالي الدقة',
+        capabilities: ['فحص بصري شعاعي عميق', 'مقارنة فسيولوجية للمورفولوجيا', 'استدلال تفريقي متقدم']
+      };
+    } else if (hasLabKeywords || isHighRiskVitals || symptomsText.length > 200) {
+      return {
+        modelName: 'gemini-3.1-pro-preview',
+        thinkingBudget: 20480,
+        reasoningMode: 'استدلال سريري عميق، تحليل تقارير مخبرية وتفريق مرضي دقيق',
+        capabilities: ['تحليل فسيولوجي للتحاليل', 'استبعاد الأمراض المشابهة', 'تخصيص البروتوكول العلاجي']
+      };
+    } else {
+      return {
+        modelName: 'gemini-3.1-pro-preview',
+        thinkingBudget: 16384,
+        reasoningMode: 'تقييم سريري استشاري شامل وطب قائم على الدليل',
+        capabilities: ['تحليل توازني متقدم', 'صياغة توصيات مبسطة للمريض', 'تقييم درجة الخطورة']
+      };
+    }
+  }
+
+  // Manual fallback if auto routing is explicitly turned off
+  let modelName = 'gemini-3.1-pro-preview';
+  if (settings.model.includes('pro')) {
+    modelName = 'gemini-3.1-pro-preview';
+  } else if (settings.model.includes('lite')) {
+    modelName = 'gemini-3.1-flash-lite';
+  } else {
+    modelName = 'gemini-3.8-flash';
+  }
+
+  return {
+    modelName,
+    thinkingBudget: settings.thinkingBudget || 16384,
+    reasoningMode: 'الوضع اليدوي المحدد',
+    capabilities: ['تطبيق الإعدادات المحددة يدوياً']
+  };
+};
+
+/* =========================================================================
    HYBRID API EXECUTION (TRY EXPRESS FIRST -> Direct Gemini direct -> Local Sim)
    ========================================================================= */
 
@@ -607,12 +685,22 @@ export const analyzeMedicalCase = async (
   patientData: Partial<PatientCase>,
   settings: SystemSettings
 ): Promise<{ diagnosis: StructuredDiagnosis, sources: any[] }> => {
+  // Dynamically resolve optimal model & reasoning depth
+  const smartConfig = resolveSmartClinicalModelAndBudget(patientData, settings);
+
   try {
     // 1. Try backend server API
     const response = await fetch("/api/analyze-case", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ patientData, settings })
+      body: JSON.stringify({ 
+        patientData, 
+        settings: {
+          ...settings,
+          model: smartConfig.modelName as any,
+          thinkingBudget: smartConfig.thinkingBudget
+        }
+      })
     });
     
     if (response.ok) {
@@ -631,10 +719,10 @@ export const analyzeMedicalCase = async (
     
     if (hasKey) {
       try {
-        console.log("Running Gemini clinical analysis directly on client-side...");
+        console.log(`Running autonomous Gemini clinical analysis on client-side (${smartConfig.modelName}, budget: ${smartConfig.thinkingBudget})...`);
         const ai = new GoogleGenAI({ apiKey });
-        const systemInstruction = getModelSpecificInstructions(settings.model, settings.personality);
-        const prompt = getModelSpecificPrompt(settings.model, patientData, settings.thinkingBudget, settings.deepThinking);
+        const systemInstruction = getModelSpecificInstructions(settings.model || ModelType.AUTO, settings.personality);
+        const prompt = getModelSpecificPrompt(settings.model || ModelType.AUTO, patientData, smartConfig.thinkingBudget, settings.deepThinking);
         
         const parts: any[] = [{ text: prompt }];
         if (patientData.images && Array.isArray(patientData.images) && patientData.images.length > 0) {
@@ -700,18 +788,12 @@ export const analyzeMedicalCase = async (
           }
         };
         
-        if (settings.googleSearch && (settings.model.includes('pro') || settings.model.includes('image-preview'))) {
+        if (settings.googleSearch) {
           config.tools = [{ googleSearch: {} }];
         }
         
-        let modelName: string = settings.model;
-        if (modelName === ModelType.PRO) modelName = 'gemini-3.1-pro-preview';
-        else if (modelName === ModelType.FLASH) modelName = 'gemini-3.5-flash';
-        else if (modelName === ModelType.LITE) modelName = 'gemini-3.1-flash-lite-preview';
-        else if (modelName.includes('image-preview') || modelName.includes('pro-image-preview')) modelName = 'gemini-3.1-pro-preview';
-        
         const response = await ai.models.generateContent({
-          model: modelName,
+          model: smartConfig.modelName,
           contents: parts,
           config
         });

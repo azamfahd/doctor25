@@ -39,7 +39,7 @@ export const PWAInstallButton: React.FC = () => {
       {/* iOS Safari Guide Modal */}
       {showIOSGuide && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl text-right font-['Tajawal'] space-y-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl text-right space-y-4">
             <div className="flex items-center justify-between border-b pb-3 border-slate-100">
               <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
                 <Smartphone className="w-5 h-5 text-blue-600" />
@@ -55,19 +55,19 @@ export const PWAInstallButton: React.FC = () => {
               </p>
               <div className="bg-slate-50 p-3 rounded-xl space-y-2 border border-slate-100">
                 <div className="flex items-center gap-2">
-                  <span className="w-5 h-5 rounded-full bg-blue-600 text-white text-[10px] font-black flex items-center justify-center shrink-0">1</span>
+                  <span className="w-5 h-5 rounded-full bg-blue-600 text-white text-xs font-black flex items-center justify-center shrink-0">1</span>
                   <span>اضغط على زر <strong>المشاركة (Share)</strong> في أسفل متصفح Safari.</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="w-5 h-5 rounded-full bg-blue-600 text-white text-[10px] font-black flex items-center justify-center shrink-0">2</span>
+                  <span className="w-5 h-5 rounded-full bg-blue-600 text-white text-xs font-black flex items-center justify-center shrink-0">2</span>
                   <span>مرر للأسفل واضغط على <strong>إضافة إلى الشاشة الرئيسية (Add to Home Screen)</strong>.</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="w-5 h-5 rounded-full bg-blue-600 text-white text-[10px] font-black flex items-center justify-center shrink-0">3</span>
+                  <span className="w-5 h-5 rounded-full bg-blue-600 text-white text-xs font-black flex items-center justify-center shrink-0">3</span>
                   <span>اضغط <strong>إضافة (Add)</strong> في الزاوية العلوية.</span>
                 </div>
               </div>
-              <p className="text-[10px] text-emerald-600 font-bold">
+              <p className="text-xs text-emerald-600 font-bold">
                 ✓ سيعمل التطبيق بشاشة كاملة وبدون إطار المتصفح مع دعم التخزين المحلي الكامل.
               </p>
             </div>
@@ -84,7 +84,7 @@ export const PWAInstallButton: React.FC = () => {
       {/* APK & App Export Modal */}
       {showModal && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl text-right font-['Tajawal'] space-y-4">
+          <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl text-right space-y-4">
             <div className="flex items-center justify-between border-b pb-3 border-slate-100">
               <div className="flex items-center gap-2">
                 <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
@@ -92,7 +92,7 @@ export const PWAInstallButton: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="text-base font-black text-slate-900">تثبيت وتصدير التطبيق (APK & PWA)</h3>
-                  <p className="text-[10px] text-slate-400 font-bold">حزم التطبيق لنظام Android وأجهزة الهاتف</p>
+                  <p className="text-xs text-slate-500 font-bold">حزم التطبيق لنظام Android وأجهزة الهاتف</p>
                 </div>
               </div>
               <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600 p-1">

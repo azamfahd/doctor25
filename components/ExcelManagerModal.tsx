@@ -190,7 +190,7 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
   const currentRows = importedList.slice((page - 1) * pageSize, page * pageSize);
 
   return (
-    <div className="fixed inset-0 z-[220] flex items-center justify-center bg-slate-900/70 backdrop-blur-md p-3 sm:p-5 overflow-y-auto font-['Tajawal']">
+    <div className="fixed inset-0 z-[220] flex items-center justify-center bg-slate-900/70 backdrop-blur-md p-3 sm:p-5 overflow-y-auto">
       <div className="bg-white w-full max-w-5xl rounded-3xl shadow-2xl border border-slate-100 flex flex-col max-h-[92vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         
         {/* Header */}
@@ -202,7 +202,7 @@ export const ExcelManagerModal: React.FC<ExcelManagerModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-base sm:text-lg font-black tracking-tight">إدارة ومعالجة قواعد بيانات Excel</h3>
-                <span className="bg-emerald-400/20 text-emerald-200 text-[9px] font-black px-2 py-0.5 rounded-full border border-emerald-400/30">
+                <span className="bg-emerald-400/20 text-emerald-200 text-xs font-bold px-2.5 py-0.5 rounded-full border border-emerald-400/30">
                   XLSX / XLS / CSV
                 </span>
               </div>

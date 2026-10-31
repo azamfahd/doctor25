@@ -45,41 +45,39 @@ const logErrorCleanly = (tag: string, err: any) => {
 
 // Model and personality configuration helpers
 const getModelSpecificInstructions = (model: string, personality: string): string => {
-  const baseInstruction = `أنت لست مجرد ذكاء اصطناعي، بل أنت "كبير الأطباء الاستشاريين" (Chief Medical Consultant). أسلوبك: ${personality}. 
-يجب أن تفكر كطبيب بشري خبير يطبق منهجية "الطب القائم على الدليل" (Evidence-Based Medicine). 
+  const baseInstruction = `أنت "كبير الأطباء الاستشاريين ورئيس قسم التشخيص السريري المتقدم" (Chief Consultant of Clinical Diagnostics & Internal Medicine). أسلوبك: ${personality}. 
+يجب أن تفكر وتعمل كطبيب بشري استشاري خبير يطبق بدقة متناهية منهجية "الطب القائم على الدليل" (Evidence-Based Medicine). 
 
-مبادئ التحليل والاستنتاج الذكي المطلوبة منك:
-1. فهم النصوص المعقدة: إذا كانت مخلات المريض عبارة عن تحاليل مخبرية (تقارير دم، أشعة، إلخ) أو نصوص غير منظمة، قم باستخراج البيانات الذكية منها بدقة، قارنها بالنسب الطبيعية، وأظهر دلالاتها في التشخيص. وإذا كان الوصف غير واضح، قم بتحليل ذكي واستنتاج ما يعنيه المريض بأسلوب احترافي بناءً على القرائن، مع ذكر أي معلومات إضافية قد تكون ضرورية للتأكد.
-2. تجميع ومقاطعة القراءات بذكاء فائق (Smart Aggregation & Verification): قم بجمع كافة القراءات الطبية، المعطيات من المستخدم، والمؤشرات الحيوية المتوفرة، ثم قارنها ببعضها البعض بذكاء ودقة متناهية. ابحث عن أي تقاطعات (Correlations) أو تناقضات (Discrepancies) واستبعد القراءات الشاذة أو غير المنطقية، لتحديد القراءة الأدق والصحيحة طبياً بشكل ذكي جداً لضمان تشخيص دقيق.
-3. الملخص السريري (summary): يجب أن يكتب بلغة احترافية جداً ومبسطة في نفس الوقت، موجهة للمريض ليفهم حالته بوضوح تام دون مصطلحات معقدة، وبأسلوب مطمئن وداعم. إذا كانت المعلومات غامضة، اشرح بلطف الاحتمالات المبدئية وسبل التأكد.
-4. التغذية العلاجية (dietaryAdvice): قدم تفصيلاً دقيقاً واحترافياً للتغذية. اذكر الأطعمة الموصى بها وفوائدها للحالة، الأطعمة الممنوعة (والتي يجب تجنبها) وأسباب منعها، والمكملات الغذائية المقترحة إذا لزم الأمر، كل ذلك في نقاط واضحة.
-5. العلاج الطبيعي والأعشاب (herbalMedicine): اذكر بعض العلاجات العشبية أو الطبيعية الممكنة والمفيدة للحالة مع ذكر طريقة الاستخدام والمحاذير إن وجدت (إذا كان مناسباً للحالة).
-6. التحليل المرضي (detailedAnalysis) والمؤشرات الحيوية: تصرف كطبيب استشاري يخاطب زميله. اشرح بتفصيل طبي الآلية المرضية (Pathophysiology)، دلالات التحاليل (إن وجدت)، والتفسير المنطقي.
-7. دقة استنباط الأعراض والتفاصيل: اقرأ وصف المريض بعناية فائقة وتوقع الأعراض الخفية. في الحقلين conditionSymptoms و conditionCauses اشرح بالتفصيل الممل كافة أعراض المرض (ليتأكد المريض) والأسباب المؤدية له بشكل دقيق.
-8. الأمراض المحتملة (differentialDiagnosis): عند تقديم قائمة بالأمراض المحتملة، اشرح بتفصيل كل مرض (reasoning) مع ذكر أعراضه (symptoms) وأسبابه (causes).
+قواعد وإرشادات صارمة وإلزامية:
+1. تشخيص حقيقي دقيق وغير وهمي إطلاقاً (Strictly Authentic & Non-Generic):
+   - يُحظر تماماً تقديم تشخيصات معلبة أو وهمية أو متكررة دون مبرر. يجب أن ينبع كل حرف في التشخيص من شكوى المريض، الأعراض، الفحص السريري، والفحوصات المرفقة فعلياً.
+   - إذا تم تقديم مؤشرات حيوية (ضغط الدم، النبض، الحرارة، نسبة تشبع الأكسجين SpO2)، قم بربطها فسيولوجياً بالأعراض وتحليل دلالاتها بدقة (مثل: ارتفاع الضغط، تسارع النبض، نقص التأكسج، أو الحمى).
+2. فحص الأشعة والصور والمختبر (Multimodal & Lab Findings):
+   - في حال إرفاق صور (أشعة سينية X-ray، رنين مغناطيسي MRI، أشعة مقطعية CT، تخطيط قلب ECG، أو صور جلدية/سريرية)، قم بفحصها بدقة في حقل (imageFindings) وتوضيح العلامات المورفولوجية المكتشفة.
+   - إذا كانت المدخلات تتضمن تقارير مخبرية (CBC, Creatinine, Liver enzymes, Blood Sugar, Urinalysis)، حلل قيم كل فحص بدقة وقارنها بالمجال المرجعي في (labResultsAnalysis).
+3. التشخيص التفريقي (Differential Diagnosis):
+   - اذكر قائمة واقعية ومبررة لأهم 3 إلى 5 تشخيصات محتملة مع نسبة الاحتمالية (probability)، المنطق السريري (reasoning)، الأعراض المميزة (symptoms)، والأسباب (causes).
+4. بروتوكول الرعاية والخطة العلاجية (treatmentPlan):
+   - قدم خطة علاجية قائمة على أحدث الإرشادات الطبية المعتمدة تشمل فئات الأدوية الموصى بها مع الجرعات الإرشادية ومدة العلاج.
+5. التغذية العلاجية ونمط الحياة (dietaryAdvice & lifestyleChanges):
+   - فصّل الأغذية الموصى بها والممنوعة علمياً وأسباب المنع، وإرشادات النوم والحركة.
+6. العلامات التحذيرية الحمراء (urgentWarnings):
+   - حدد بوضوح الأعراض الخطيرة التي توجب مراجعة الطوارئ الفورية دون تأخير.
 
-يجب أن يكون الرد بتنسيق JSON حصرياً.`;
+يجب أن يكون الرد بتنسيق JSON حصرياً ومطابقاً للـ Schema المحددة.`;
 
-  if (model.includes("pro-preview")) {
+  if (model.includes("pro")) {
     return `${baseInstruction}
-تخصصك: استشاري أول في الطب الباطني والحالات المعقدة (Internal Medicine & Complex Cases).
-مطلوب منك: الغوص بعمق في الفسيولوجيا المرضية (Pathophysiology)، استبعاد الأمراض النادرة عبر التشخيص التفريقي (Differential Diagnosis)، تقديم تحليل استدلالي معقد يربط كل عرض بسبب جذري محتمل، وتبرير مستوى الخطورة بناءً على أحدث البروتوكولات الطبية العالمية.`;
-  } else if (model.includes("image-preview")) {
+تخصصك الدقيق: استشاري أول في الطب الباطني والحالات المعقدة (Internal Medicine & Complex Diagnostics).
+مطلوب منك: الغوص بعمق في الفسيولوجيا المرضية (Pathophysiology)، دراسة العوامل الجينية والمناعية، واستبعاد الاحتمالات عبر التشخيص التفريقي الدقيق.`;
+  } else if (model.includes("lite")) {
     return `${baseInstruction}
-تخصصك: استشاري أشعة تشخيصية وطب سريري (Diagnostic Radiology & Clinical Medicine).
-مطلوب منك: التركيز بشكل مكثف على أي صور مرفقة. قم بوصف التغيرات المورفولوجية بدقة، تحديد التشوهات، وربط المكتشفات الشعاعية/البصرية بالأعراض السريرية والمؤشرات الحيوية لتقديم تشخيص متكامل.`;
-  } else if (model.includes("lite-preview")) {
-    return `${baseInstruction}
-تخصصك: استشاري طب الطوارئ والفرز الطبي (Emergency Medicine & Triage).
-مطلوب منك: التقييم السريع والحاسم للحالة، تحديد العلامات الحمراء (Red Flags) فوراً، تقديم خطوات إنقاذ حياة أو توجيهات عاجلة بأقصر وأوضح العبارات، والتركيز على استقرار المريض.`;
-  } else if (model.includes("live-preview")) {
-    return `${baseInstruction}
-تخصصك: استشاري طب الأسرة والتواصل السريري (Family Medicine & Clinical Communication).
-مطلوب منك: تحليل الأعراض المذكورة بعناية فائقة، التركيز على الحالة العامة للمريض من منظور شمولي (Holistic approach)، وتقديم خطة رعاية تركز على جودة الحياة والدعم الشامل.`;
+تخصصك الدقيق: استشاري طب الطوارئ والفرز السريري (Emergency Medicine & Acute Triage).
+مطلوب منك: التقييم السريع والحاسم لدرجة الخطورة، كشف العلامات الحمراء فوراً، والتركيز على استقرار المريض السريري.`;
   } else {
     return `${baseInstruction}
-تخصصك: أخصائي طب عام (General Practitioner).
-مطلوب منك: تقديم تقييم سريري شامل ومتوازن، وضع خطة علاجية قياسية مبنية على الأدلة، وتوجيه المريض للخطوات العملية التالية بوضوح.`;
+تخصصك الدقيق: استشاري الطب السريري العام والممارسة الشاملة (Comprehensive Clinical Medicine).
+مطلوب منك: تقديم تقييم متوازن، دقيق، ومبني على الأدلة العلمية، مع صياغة خطة رعاية متكاملة وواضحة للمريض.`;
   }
 };
 
@@ -213,13 +211,24 @@ async function startServer() {
         }
       };
 
-      if (settings.googleSearch && (settings.model.includes('pro') || settings.model.includes('image-preview'))) {
+      if (settings?.googleSearch) {
         config.tools = [{ googleSearch: {} }];
       }
 
-      let configuredModel = settings.model || 'gemini-3.1-pro-preview';
-      // Remap image generation model to vision understanding model if selected
-      if (configuredModel.includes('pro-image-preview') || configuredModel.includes('image-preview')) {
+      // Autonomous Clinical Model & Reasoning Orchestration
+      const hasImages = patientData?.images && Array.isArray(patientData.images) && patientData.images.length > 0;
+      const symptomsText = ((patientData?.symptoms || '') + ' ' + (patientData?.notes || '') + ' ' + (patientData?.medicalHistory || '')).toLowerCase();
+      const hasLabKeywords = /(تحليل|مختبر|فحص|cbc|creatinine|blood sugar|glucose|ecg|troponin|alt|ast|inr|wbc|crp|esr|رنين|أشعة|x-ray|ct scan|mri|sonar|ultrasound)/i.test(symptomsText);
+      const isAuto = !settings?.model || settings.model === 'auto' || settings.autoModelRouting !== false;
+
+      let configuredModel = 'gemini-3.1-pro-preview';
+      if (isAuto) {
+        configuredModel = 'gemini-3.1-pro-preview';
+      } else if (settings.model?.includes('lite')) {
+        configuredModel = 'gemini-3.1-flash-lite';
+      } else if (settings.model?.includes('flash')) {
+        configuredModel = 'gemini-3.8-flash';
+      } else {
         configuredModel = 'gemini-3.1-pro-preview';
       }
 
@@ -229,11 +238,8 @@ async function startServer() {
       const modelsToTry = Array.from(new Set([
         configuredModel,
         'gemini-3.1-pro-preview',
-        'gemini-3.6-flash',
-        'gemini-3.5-pro',
-        'gemini-3.5-flash',
-        'gemini-2.5-pro',
-        'gemini-2.5-flash'
+        'gemini-3.8-flash',
+        'gemini-3.1-flash-lite'
       ]));
 
       for (const modelName of modelsToTry) {
@@ -247,17 +253,17 @@ async function startServer() {
             contents: parts,
             config: currentConfig
           });
-          if (response) {
+          if (response && response.text) {
             break;
           }
         } catch (err: any) {
           lastError = err;
-          logWarnCleanly(`Model ${modelName} failed during analysis, trying next fallback...`, err);
+          logWarnCleanly(`Model ${modelName} encountered issue, switching to active alternative...`, err);
         }
       }
 
       if (!response) {
-        throw lastError || new Error("All generative models failed to respond");
+        throw lastError || new Error("All active Gemini models failed to respond");
       }
 
       const cleanedText = response.text?.replace(/```json/g, "").replace(/```/g, "").trim() || '{}';
@@ -327,14 +333,9 @@ async function startServer() {
       let lastConsolidateError: any = null;
 
       const consolidateModelsToTry = Array.from(new Set([
-        modelName || 'gemini-3.1-pro-preview',
-        'gemini-3.6-flash',
-        'gemini-3.5-pro',
+        'gemini-3.8-flash',
         'gemini-3.1-pro-preview',
-        'gemini-3.5-flash',
-        'gemini-2.5-pro',
-        'gemini-2.5-flash',
-        'gemini-3-flash-preview'
+        'gemini-3.1-flash-lite'
       ]));
 
       for (const modelToTry of consolidateModelsToTry) {
@@ -419,7 +420,7 @@ async function startServer() {
       let audioData = "";
       try {
         const response = await ai.models.generateContent({
-          model: "gemini-3.1-flash-tts-preview",
+          model: "gemini-3.8-flash-lite-tts",
           contents: [{ parts: [{ text: sanitizedText }] }],
           config: {
             responseModalities: [Modality.AUDIO],
@@ -432,27 +433,10 @@ async function startServer() {
         });
         audioData = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data || "";
       } catch (e: any) {
-        const errorMsg = String(e?.message || e);
-        const lowerMsg = errorMsg.toLowerCase();
-        const isQuotaOrRateLimit = lowerMsg.includes("429") || 
-                                   lowerMsg.includes("quota") || 
-                                   lowerMsg.includes("limit") || 
-                                   lowerMsg.includes("busy") || 
-                                   lowerMsg.includes("exhausted") || 
-                                   lowerMsg.includes("requests") ||
-                                   lowerMsg.includes("rate-limit");
-        
         logWarnCleanly("TTS primary service transition", e);
-        
-        if (isQuotaOrRateLimit) {
-          // If quota exceeded or rate-limited on this key, skip secondary API call to prevent redundant failures.
-          // Returning empty string triggers the client-side browser native Arabic SpeechSynthesis gracefully.
-          return res.json({ audioData: "" });
-        }
-        
         try {
           const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash-preview-tts",
+            model: "gemini-3.8-flash-tts",
             contents: [{ parts: [{ text: sanitizedText }] }],
             config: {
               responseModalities: [Modality.AUDIO],

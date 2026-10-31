@@ -178,13 +178,13 @@ const Diagnosis: React.FC<DiagnosisProps> = ({ onAnalyze, isAnalyzing, onNavigat
                 <FileSearch className="w-5 h-5" />
               </div>
               <div>
-                 <h2 className="text-lg lg:text-xl font-black text-slate-900 tracking-tight">وحدة التشخيص المتطورة</h2>
-                 <p className="text-[7px] text-slate-400 font-black uppercase tracking-[0.3em] mt-0.5">Diagnostic Intelligence Engine v4.0</p>
+                 <h2 className="text-xl lg:text-2xl font-black text-slate-900 tracking-tight">وحدة التشخيص المتطورة</h2>
+                 <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mt-0.5">Diagnostic Intelligence Engine v4.0</p>
               </div>
            </div>
-           <div className="hidden sm:flex items-center gap-1 px-2 py-1 bg-emerald-50 rounded-md border border-emerald-100">
-              <div className="w-1 h-1 bg-emerald-500 rounded-full animate-pulse"></div>
-              <span className="text-[7px] font-black text-emerald-600 uppercase tracking-widest">النظام نشط</span>
+           <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 bg-emerald-50 rounded-lg border border-emerald-200">
+              <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+              <span className="text-xs font-bold text-emerald-700 uppercase tracking-wider">النظام نشط</span>
            </div>
         </div>
 
@@ -192,36 +192,36 @@ const Diagnosis: React.FC<DiagnosisProps> = ({ onAnalyze, isAnalyzing, onNavigat
           {/* Main Info */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="space-y-1.5">
-              <label className="text-[8px] font-black text-slate-400 pr-2 uppercase tracking-widest">اسم المريض الكامل</label>
+              <label className="text-xs font-bold text-slate-600 pr-1 uppercase tracking-wide">اسم المريض الكامل</label>
               <input 
                 value={name} 
                 onChange={e => setName(e.target.value)} 
-                className="w-full bg-slate-50 border-2 border-transparent focus:border-blue-100 focus:bg-white rounded-xl px-3.5 py-2.5 outline-none font-black text-xs transition-all text-slate-800 placeholder:text-slate-300" 
+                className="w-full bg-slate-50 border-2 border-transparent focus:border-blue-100 focus:bg-white rounded-xl px-4 py-2.5 outline-none font-bold text-sm transition-all text-slate-800 placeholder:text-slate-400" 
                 placeholder="أدخل الاسم هنا..." 
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-[8px] font-black text-slate-400 pr-2 uppercase tracking-widest">العمر (سنوات)</label>
+              <label className="text-xs font-bold text-slate-600 pr-1 uppercase tracking-wide">العمر (سنوات)</label>
               <input 
                 type="number" 
                 value={age} 
                 onChange={e => setAge(e.target.value)} 
-                className="w-full bg-slate-50 border-2 border-transparent focus:border-blue-100 focus:bg-white rounded-xl px-3.5 py-2.5 outline-none font-black text-xs transition-all text-slate-800 placeholder:text-slate-300" 
+                className="w-full bg-slate-50 border-2 border-transparent focus:border-blue-100 focus:bg-white rounded-xl px-4 py-2.5 outline-none font-bold text-sm transition-all text-slate-800 placeholder:text-slate-400" 
                 placeholder="00" 
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-[8px] font-black text-slate-400 pr-2 uppercase tracking-widest">الجنس السريري</label>
+              <label className="text-xs font-bold text-slate-600 pr-1 uppercase tracking-wide">الجنس السريري</label>
               <div className="flex gap-2">
                 <button 
                   onClick={() => setGender('ذكر')} 
-                  className={`flex-1 py-2.5 rounded-xl font-black text-[10px] transition-all border-2 ${gender === 'ذكر' ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-slate-50 border-transparent text-slate-400 hover:border-slate-200'}`}
+                  className={`flex-1 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all border-2 ${gender === 'ذكر' ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-slate-50 border-transparent text-slate-600 hover:border-slate-200'}`}
                 >
                   ذكر
                 </button>
                 <button 
                   onClick={() => setGender('أنثى')} 
-                  className={`flex-1 py-2.5 rounded-xl font-black text-[10px] transition-all border-2 ${gender === 'أنثى' ? 'bg-rose-500 border-rose-500 text-white shadow-lg shadow-rose-500/20' : 'bg-slate-50 border-transparent text-slate-400 hover:border-slate-200'}`}
+                  className={`flex-1 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all border-2 ${gender === 'أنثى' ? 'bg-rose-500 border-rose-500 text-white shadow-lg shadow-rose-500/20' : 'bg-slate-50 border-transparent text-slate-600 hover:border-slate-200'}`}
                 >
                   أنثى
                 </button>
@@ -232,11 +232,11 @@ const Diagnosis: React.FC<DiagnosisProps> = ({ onAnalyze, isAnalyzing, onNavigat
           {/* Symptoms Area */}
           <div className="space-y-3">
             <div className="space-y-1.5">
-              <label className="text-[8px] font-black text-slate-400 pr-2 uppercase tracking-widest">وصف الأعراض / التاريخ المرضي / التحاليل المخبرية</label>
+              <label className="text-xs font-bold text-slate-600 pr-1 uppercase tracking-wide">وصف الأعراض / التاريخ المرضي / التحاليل المخبرية</label>
               <textarea 
                 value={symptoms} 
                 onChange={e => setSymptoms(e.target.value)}
-                className="w-full bg-slate-50 border-2 border-transparent focus:border-blue-100 focus:bg-white rounded-xl p-4 h-32 outline-none font-bold text-xs text-slate-700 resize-none leading-relaxed transition-all placeholder:text-slate-300 shadow-inner" 
+                className="w-full bg-slate-50 border-2 border-transparent focus:border-blue-100 focus:bg-white rounded-xl p-4 h-32 outline-none font-medium text-sm text-slate-800 resize-none leading-relaxed transition-all placeholder:text-slate-400 shadow-inner" 
                 placeholder="يرجى كتابة الأعراض بالتفصيل، أو نسخ ولصق نتائج التحاليل المخبرية (Lab Results)، أو تقارير الأشعة، وسيقوم النظام الذكي باستخراج وتحليل كافة البيانات..."
               />
             </div>
@@ -246,7 +246,7 @@ const Diagnosis: React.FC<DiagnosisProps> = ({ onAnalyze, isAnalyzing, onNavigat
                 <button 
                   key={sym}
                   onClick={() => setSymptoms(prev => prev ? `${prev}، ${sym}` : sym)}
-                  className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-[9px] font-bold text-slate-600 transition-colors"
+                  className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-xs font-bold text-slate-700 transition-colors cursor-pointer"
                 >
                   + {sym}
                 </button>
@@ -257,9 +257,9 @@ const Diagnosis: React.FC<DiagnosisProps> = ({ onAnalyze, isAnalyzing, onNavigat
           {/* Vitals Grid */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h4 className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em]">المؤشرات الحيوية الحالية</h4>
-              <button onClick={() => setIsScannerOpen(true)} className="text-[8px] font-black text-emerald-600 bg-emerald-50 border border-emerald-200/60 px-3 py-1.5 rounded-lg flex items-center gap-1.5 hover:bg-emerald-100/80 transition-colors cursor-pointer">
-                <Activity className="w-3 h-3 animate-pulse" /> المستشعر الفسيولوجي الذكي (PPG & Sensors)
+              <h4 className="text-xs font-bold text-slate-600 uppercase tracking-wide">المؤشرات الحيوية الحالية</h4>
+              <button onClick={() => setIsScannerOpen(true)} className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 hover:bg-emerald-100 transition-colors cursor-pointer">
+                <Activity className="w-3.5 h-3.5 animate-pulse text-emerald-600" /> المستشعر الفسيولوجي الذكي (PPG & Sensors)
               </button>
             </div>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
@@ -272,9 +272,9 @@ const Diagnosis: React.FC<DiagnosisProps> = ({ onAnalyze, isAnalyzing, onNavigat
                 const Icon = v.icon;
                 return (
                 <div key={v.key} className={`${v.bg} p-3 rounded-xl border border-white shadow-sm group hover:scale-105 transition-transform`}>
-                   <div className={`flex items-center gap-1 ${v.color} mb-1.5`}>
-                      <Icon className="w-3.5 h-3.5" />
-                      <span className="text-[7px] font-black uppercase tracking-widest">{v.label}</span>
+                   <div className={`flex items-center gap-1.5 ${v.color} mb-1.5`}>
+                      <Icon className="w-4 h-4" />
+                      <span className="text-xs font-bold uppercase tracking-wider">{v.label}</span>
                    </div>
                    <div className="flex items-end gap-1">
                      <input 
@@ -283,7 +283,7 @@ const Diagnosis: React.FC<DiagnosisProps> = ({ onAnalyze, isAnalyzing, onNavigat
                        className="bg-transparent border-none outline-none font-black text-slate-900 text-lg w-full placeholder:text-slate-300" 
                        placeholder="--" 
                      />
-                     <span className="text-[7px] font-black text-slate-400 mb-1">{v.unit}</span>
+                     <span className="text-xs font-bold text-slate-500 mb-1">{v.unit}</span>
                    </div>
                 </div>
               )})}
@@ -340,18 +340,18 @@ const Diagnosis: React.FC<DiagnosisProps> = ({ onAnalyze, isAnalyzing, onNavigat
           {/* Image and Medical Document Uploader */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="text-[8px] font-black text-slate-400 pr-2 uppercase tracking-widest flex items-center gap-1.5">
-                <ImagePlus className="w-3.5 h-3.5 text-blue-500" />
+              <label className="text-xs font-bold text-slate-600 pr-1 uppercase tracking-wide flex items-center gap-1.5">
+                <ImagePlus className="w-4 h-4 text-blue-500" />
                 <span>إرفاق الأشعة، التحاليل المخبرية، أو تقارير الفحص الطبي</span>
               </label>
               {images.length > 0 && (
                 <div className="flex items-center gap-2">
-                  <span className="text-[8px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md flex items-center gap-1">
-                    <CheckCircle2 className="w-3 h-3 text-blue-500" /> تم إرفاق {images.length} ملف
+                  <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-md flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-blue-500" /> تم إرفاق {images.length} ملف
                   </span>
                   <button 
                     onClick={() => setImages([])}
-                    className="text-[8px] font-bold text-rose-500 hover:text-rose-700 hover:underline cursor-pointer"
+                    className="text-xs font-bold text-rose-500 hover:text-rose-700 hover:underline cursor-pointer"
                   >
                     حذف الكل
                   </button>
@@ -378,10 +378,10 @@ const Diagnosis: React.FC<DiagnosisProps> = ({ onAnalyze, isAnalyzing, onNavigat
               <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm mb-3 group-hover:scale-110 group-hover:shadow-md transition-all text-blue-500">
                 <UploadCloud className="w-6 h-6 animate-pulse-soft" />
               </div>
-              <p className="text-xs font-black text-slate-700 mb-1">
+              <p className="text-sm font-black text-slate-800 mb-1">
                 اضغط لاختيار أو اسحب وأفلت صور الأشعة والتقارير الطبية هنا
               </p>
-              <p className="text-[9px] text-slate-400 font-bold max-w-md text-center leading-relaxed">
+              <p className="text-xs text-slate-500 font-medium max-w-md text-center leading-relaxed">
                 يدعم صور الأشعة السينية (X-Ray)، الرنين المغناطيسي (MRI)، الأشعة المقطعية (CT)، تحاليل الدم (CBC)، وتقارير الفحص بصيغ JPG, PNG, WebP, PDF
               </p>
               <input 
@@ -403,15 +403,15 @@ const Diagnosis: React.FC<DiagnosisProps> = ({ onAnalyze, isAnalyzing, onNavigat
                       {isPdf ? (
                         <div className="w-full h-full bg-slate-50 flex flex-col items-center justify-center p-2 text-center">
                           <FileText className="w-8 h-8 text-rose-500 mb-1 animate-pulse" />
-                          <span className="text-[8px] font-black text-slate-700 truncate max-w-full">تقرير طبي PDF</span>
-                          <span className="text-[7px] font-bold text-rose-500 uppercase tracking-widest mt-0.5">جاهز للتحليل</span>
+                          <span className="text-xs font-bold text-slate-700 truncate max-w-full">تقرير طبي PDF</span>
+                          <span className="text-[10px] font-bold text-rose-500 uppercase tracking-wider mt-0.5">جاهز للتحليل</span>
                         </div>
                       ) : (
                         <img src={img} className="w-full h-full object-cover" alt={`doc-${idx}`} />
                       )}
                       
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
-                        <span className="text-[9px] text-white font-bold bg-black/60 px-2 py-0.5 rounded-full">ملف {idx + 1}</span>
+                        <span className="text-xs text-white font-bold bg-black/60 px-2 py-0.5 rounded-full">ملف {idx + 1}</span>
                       </div>
                       
                       <button 

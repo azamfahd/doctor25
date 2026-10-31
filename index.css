@@ -1,7 +1,8 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Tajawal", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Cairo", "Tajawal", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
   --radius-3xl: 1.5rem;
   --radius-4xl: 2rem;
   --radius-5xl: 2.5rem;
@@ -11,12 +12,24 @@
 }
 
 @layer base {
+  html, body, #root {
+    font-family: 'Cairo', 'Tajawal', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
   body {
     @apply bg-[#F8FAFC] text-slate-900 antialiased selection:bg-blue-100 selection:text-blue-900;
   }
   
   h1, h2, h3, h4, h5, h6 {
-    @apply tracking-tight;
+    @apply tracking-tight font-black;
+    font-family: 'Cairo', 'Tajawal', sans-serif;
+  }
+
+  button, input, textarea, select {
+    font-family: inherit;
   }
 }
 

@@ -6,16 +6,17 @@ export enum AIPersonality {
 }
 
 export enum ModelType {
+  AUTO = 'auto',
   PRO = 'gemini-3.1-pro-preview',
-  FLASH = 'gemini-3.5-flash',
-  FLASH_3_6 = 'gemini-3.6-flash',
-  PRO_3_5 = 'gemini-3.5-pro',
-  FLASH_3_5 = 'gemini-3.5-flash',
-  PRO_2_5 = 'gemini-2.5-pro',
-  FLASH_2_5 = 'gemini-2.5-flash',
-  PRO_1_5 = 'gemini-1.5-pro',
-  LITE = 'gemini-3.1-flash-lite-preview',
-  IMAGE_PRO = 'gemini-3.1-pro-preview-vision',
+  FLASH = 'gemini-3.8-flash',
+  FLASH_3_6 = 'gemini-3.8-flash',
+  PRO_3_5 = 'gemini-3.1-pro-preview',
+  FLASH_3_5 = 'gemini-3.8-flash',
+  PRO_2_5 = 'gemini-3.1-pro-preview',
+  FLASH_2_5 = 'gemini-3.8-flash',
+  PRO_1_5 = 'gemini-3.1-pro-preview',
+  LITE = 'gemini-3.1-flash-lite',
+  IMAGE_PRO = 'gemini-3.1-pro-preview',
   AUDIO_NATIVE = 'gemini-3.8-live'
 }
 
@@ -87,7 +88,11 @@ export interface PatientCase {
   diagnosis?: StructuredDiagnosis;
   chatHistory?: ChatMessage[];
   date: string;
+  medicalHistory?: string;
+  notes?: string;
   status: 'مستقرة' | 'متابعة' | 'تدخل طبي' | 'حرجة';
+  syncedWithCloud?: boolean;
+  localUpdatedAt?: string;
 }
 
 export interface SystemSettings {
@@ -95,6 +100,7 @@ export interface SystemSettings {
   doctorName: string;
   personality: AIPersonality;
   model: ModelType;
+  autoModelRouting?: boolean; // التوجيه الذكي التلقائي للنموذج وميزانية التفكير
   deepThinking: boolean;
   thinkingBudget: number; // قيمة رقمية لميزانية التفكير
   googleSearch: boolean; // تفعيل البحث في جوجل
@@ -103,4 +109,17 @@ export interface SystemSettings {
   voiceEnabled: boolean;
   voiceOutputEnabled: boolean;
   apiKey?: string;
+}
+
+export interface LocalUser {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  specialization?: string;
+  centerName?: string;
+  avatar?: string;
+  password?: string;
+  createdAt: string;
+  lastLoginAt: string;
 }
