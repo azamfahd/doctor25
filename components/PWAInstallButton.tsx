@@ -7,14 +7,11 @@ export const PWAInstallButton: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [showIOSGuide, setShowIOSGuide] = useState(false);
 
-  // If already running in standalone native mode, don't show ambient prompt
-  if (isInstalled) {
-    return (
-      <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 rounded-xl text-[10px] font-bold border border-emerald-100">
-        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-        <span>تطبيق مثبت (Native App)</span>
-      </div>
-    );
+  const isNative = (window as any).Capacitor?.isNativePlatform?.();
+
+  // If already running in standalone native mode or inside Capacitor, hide the ambient install button
+  if (isInstalled || isNative) {
+    return null;
   }
 
   return (

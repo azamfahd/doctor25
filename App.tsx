@@ -9,6 +9,7 @@ import AIResult from './components/AIResult.tsx';
 import ConsultSession from './components/ConsultSession.tsx';
 import PowerBIAnalytics from './components/PowerBIAnalytics.tsx';
 import { AdvancedAnalytics } from './components/AdvancedAnalytics.tsx';
+import { UpdateNotification } from './components/UpdateNotification.tsx';
 import { PatientCase, SystemSettings, StructuredDiagnosis, VitalSigns } from './types.ts';
 import { INITIAL_SETTINGS, STORAGE_KEYS } from './constants.ts';
 import { analyzeMedicalCase } from './services/geminiService.ts';
@@ -546,14 +547,17 @@ const App: React.FC = () => {
   };
 
   return (
-    <Layout 
-      activeTab={activeTab} 
-      setActiveTab={setActiveTab} 
-      settings={settings} 
-      onUpdateSettings={updateSettings}
-    >
-      {renderContent()}
-    </Layout>
+    <>
+      <Layout 
+        activeTab={activeTab} 
+        setActiveTab={setActiveTab} 
+        settings={settings} 
+        onUpdateSettings={updateSettings}
+      >
+        {renderContent()}
+      </Layout>
+      <UpdateNotification />
+    </>
   );
 };
 

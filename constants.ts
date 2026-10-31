@@ -20,3 +20,5 @@ export const STORAGE_KEYS = {
   SETTINGS: 'smart_sage_settings',
   RECORDS: 'smart_sage_records'
 };
+
+export const APP_VERSION = '4.0.5'; // سيتم تحديث هذا تلقائياً عند البناء عبر GitHub
