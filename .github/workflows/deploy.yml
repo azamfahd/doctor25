@@ -1,14 +1,17 @@
-name: Al-Hakim Pro CI/CD - Vite Build & Deploy APK
+name: Al-Hakim Pro CI/CD - Vite Build & Auto-Release APK
 
 on:
   push:
-    branches: [ "main", "master", "develop" ]
+    branches: [ "main", "master" ]
   pull_request:
     branches: [ "main", "master" ]
 
+permissions:
+  contents: write
+
 jobs:
-  build:
-    name: Build Vite App & Package APK
+  build-and-release:
+    name: Build Vite App, Package APK & Auto-Release
     runs-on: ubuntu-latest
 
     steps:
@@ -52,11 +55,24 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug
 
-      - name: Upload Build Artifacts
-        uses: actions/upload-artifact@v4
+      - name: Generate Version Tag
+        id: version
+        run: |
+          TAG="v4.0.$(date +%Y%m%d%H%M%S)"
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release & Upload APK
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/heads/main') || startsWith(github.ref, 'refs/heads/master')
         with:
-          name: alhakim-pro-apk-artifact
-          path: |
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: "Al-Hakim Pro Medical System Release ${{ steps.version.outputs.tag }}"
+          body: |
+            ### 🩺 الحكيم الذكي Pro - الإصدار التلقائي (Auto-Release)
+            - **تاريخ الإصدار:** ${{ steps.version.outputs.tag }}
+            - **المميزات:** نظام تشخيص طبي ذكي متطور، قاعدة بيانات محلية دائمية (SQLite)، وتحليل دقيق لصور الأشعة والتقارير الطبية.
+            - **التثبيت:** قم بتحميل ملف `app-debug.apk` المرفق مع هذا الإصدار لتثبيته فوراً على جهاز الأندرويد.
+          files: |
             android/app/build/outputs/apk/debug/app-debug.apk
-            dist/
-        if: success()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
