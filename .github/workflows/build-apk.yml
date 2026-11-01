@@ -69,6 +69,11 @@ jobs:
         run: |
           test -d android
           cd android
+          
+          # حقن رقم الإصدار البرمجي (versionCode) والاسم (versionName) في إعدادات أندرويد لضمان التحديث السلس
+          sed -i "s/versionCode [0-9]*/versionCode ${{ github.run_number }}/g" app/build.gradle
+          sed -i "s/versionName \".*\"/versionName \"${{ steps.version_logic.outputs.tag }}\"/g" app/build.gradle
+          
           chmod +x gradlew
           ./gradlew assembleDebug
 
