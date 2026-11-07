@@ -62,6 +62,9 @@ export const getSimulatedDiagnosis = (patientData: Partial<PatientCase>): Struct
     category = "febrile_syndrome";
   }
 
+  const simulationNote = "(تحذير: هذا التشخيص ناتج عن محرك المحاكاة المحلي لعدم توفر اتصال بالذكاء الاصطناعي السحابي حالياً)";
+
+
   const imageAnalysisNote = patientData.images && patientData.images.length > 0
     ? `تمت معاينة المستند/الصورة المرفقة (${patientData.images.length} ملف)، ومطابقتها فحصياً مع الشكوى السريرية.`
     : undefined;
@@ -152,7 +155,7 @@ export const getSimulatedDiagnosis = (patientData: Partial<PatientCase>): Struct
           "الاحتفاظ بنسخة من أحدث تخطيط قلب في المحفظة للمقارنة عند الحاجة."
         ],
         generalInfo: "آلام الصدر متعددة الأسباب ولكن تقييم القلب واستبعاد نقص التروية هو القاعدة الذهبية في الطب الحديث لضمان سلامة الحياة.",
-        labResultsAnalysis: `المؤشرات الحيوية المسجلة: الضغط ${bp}، النبض ${pulse} ن/د، الحرارة ${temp}°C، الأكسجين ${spo2}%. تدل على ${isTachycardic ? "تسرع في النبض يحتاج استقصاء عاجلاً" : "حالة ديناميكية تتطلب إثبات تخطيط القلب"}.`
+        labResultsAnalysis: `${simulationNote} - المؤشرات الحيوية المسجلة: الضغط ${bp}، النبض ${pulse} ن/د، الحرارة ${temp}°C، الأكسجين ${spo2}%. تدل على ${isTachycardic ? "تسرع في النبض يحتاج استقصاء عاجلاً" : "حالة ديناميكية تتطلب إثبات تخطيط القلب"}.`
       };
 
     case "hypertension":
@@ -233,7 +236,7 @@ export const getSimulatedDiagnosis = (patientData: Partial<PatientCase>): Struct
           "عرض جدول القراءات على الطبيب المعالج خلال أسبوعين لتعديل جرعات الدواء بدقة."
         ],
         generalInfo: "ارتفاع ضغط الدم يُعرف بـ 'القاتل الصامت' لغياب الأعراض لدى الكثيرين، لكن السيطرة عليه تقي تماماً من الجلطات وأمراض القلب.",
-        labResultsAnalysis: `قراءة الضغط الحالية ${bp} ملم زئبق تصنف ضمن ارتفاع الضغط، بينما النبض (${pulse} ن/د) والأكسجين (${spo2}%) يعكسان استقراراً ديناميكياً يحتاج دعماً وقائياً.`
+        labResultsAnalysis: `${simulationNote} - قراءة الضغط الحالية ${bp} ملم زئبق تصنف ضمن ارتفاع الضغط، بينما النبض (${pulse} ن/د) والأكسجين (${spo2}%) يعكسان استقراراً ديناميكياً يحتاج دعماً وقائياً.`
       };
 
     case "respiratory":
@@ -316,7 +319,7 @@ export const getSimulatedDiagnosis = (patientData: Partial<PatientCase>): Struct
           "مراقبة مستوى الأكسجين بمقياس النبض الإصبعي مرتين يومياً."
         ],
         generalInfo: "الجهاز التنفسي يتعافى بفعالية عند توفير الترطيب الكافي والابتعاد عن المهيجات والالتزام بالعلاجات الموسعة للشعب.",
-        labResultsAnalysis: `مؤشراتك الحيوية: تشبع الأكسجين ${spo2}% (${isHypoxic ? "أقل من المثالي" : "مطمئن ومقبول"})، النبض ${pulse} ن/د، الحرارة ${temp}°C، والضغط ${bp} ملم زئبق.`
+        labResultsAnalysis: `${simulationNote} - مؤشراتك الحيوية: تشبع الأكسجين ${spo2}% (${isHypoxic ? "أقل من المثالي" : "مطمئن ومقبول"})، النبض ${pulse} ن/د، الحرارة ${temp}°C، والضغط ${bp} ملم زئبق.`
       };
 
     case "gerd_gastritis":
@@ -396,7 +399,7 @@ export const getSimulatedDiagnosis = (patientData: Partial<PatientCase>): Struct
           "توثيق الأطعمة التي تثير النوبة وتجنبها بشكل منهجي."
         ],
         generalInfo: "الارتجاع والتهاب المعدة من الحالات شائعة الحدوث عالمياً، والاستجابة للعلاج السلوكي والدوائي تتجاوز 90% عند الالتزام بالتوجيهات.",
-        labResultsAnalysis: `مؤشراتك الحيوية مستقرة تماماً (الضغط ${bp} ملم زئبق، النبض ${pulse} ن/د، الحرارة ${temp}°C)، مما يدل على عدم وجود اختلاطات جهازية حادة.`
+        labResultsAnalysis: `${simulationNote} - مؤشراتك الحيوية مستقرة تماماً (الضغط ${bp} ملم زئبق، النبض ${pulse} ن/د، الحرارة ${temp}°C)، مما يدل على عدم وجود اختلاطات جهازية حادة.`
       };
 
     case "gastrointestinal":

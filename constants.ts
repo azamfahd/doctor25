@@ -13,7 +13,8 @@ export const INITIAL_SETTINGS: SystemSettings = {
   theme: ThemeMode.LIGHT,
   autoSave: true,
   voiceEnabled: true,
-  voiceOutputEnabled: true
+  voiceOutputEnabled: true,
+  defaultVoice: 'Puck'
 };
 
 export const STORAGE_KEYS = {
@@ -21,4 +22,4 @@ export const STORAGE_KEYS = {
   RECORDS: 'smart_sage_records'
 };
 
-export const APP_VERSION = '4.5.0'; // تم الترقية إلى الإصدار المتقدم 4.5.0
+export const APP_VERSION = '4.6.0'; // تم الترقية إلى الإصدار المتقدم 4.6.0

@@ -5,7 +5,7 @@ import {
   Pill, ShieldCheck, 
   Activity, Zap, BarChart3, Microscope, Target, Volume2, Printer, Square, UserCog,
   Apple, Dumbbell, LifeBuoy, HeartPulse, AlertOctagon, Image as ImageIcon, Stethoscope, FileText, Leaf, Download, Share2, Copy,
-  Play, Pause
+  Play, Pause, Loader2
 } from 'lucide-react';
 import { StructuredDiagnosis, SystemSettings } from '../types';
 import { generateSpeech } from '../services/geminiService';
@@ -227,19 +227,31 @@ const AIResult: React.FC<AIResultProps> = ({ diagnosis, patientName, patientGend
   const preFetchChapter = async (index: number) => {
     if (index < 0 || index >= chapters.length) return;
     if (selectedVoice === 'WebSpeech') return;
-    if (cachedAudiosRef.current.has(index)) return;
+    
+    const voiceAtStartTime = selectedVoice;
+    const cacheKey = `${voiceAtStartTime}_${index}`;
+    
+    if (cachedAudiosRef.current.has(index as any)) return; // Backward compatibility check if needed, but we'll use string keys now
+    if (Array.from(cachedAudiosRef.current.keys()).some(k => String(k).startsWith(cacheKey))) return;
     if (preFetchingChaptersRef.current.has(index)) return;
 
     preFetchingChaptersRef.current.add(index);
     try {
-      const activeVoiceName = selectedVoice;
       const chapterText = chapters[index].text;
-      const base64Audio = await generateSpeech(chapterText, settings || undefined, activeVoiceName);
+      const base64Audio = await generateSpeech(chapterText, settings || undefined, voiceAtStartTime);
+      
+      // CRITICAL: Verify the voice hasn't changed while we were fetching!
+      if (selectedVoice !== voiceAtStartTime) {
+        return; 
+      }
+
       if (base64Audio) {
         const ctxClass = window.AudioContext || (window as any).webkitAudioContext;
         const tempCtx = new ctxClass({ sampleRate: 24000 });
         const buffer = await decodeAudioData(decodeBytes(base64Audio), tempCtx, 24000, 1);
-        cachedAudiosRef.current.set(index, buffer);
+        
+        // Use a composite key to prevent voice mixing!
+        (cachedAudiosRef.current as any).set(cacheKey, buffer);
       }
     } catch (e) {
       console.warn(`Background pre-fetch audio failed for chapter ${index}:`, e);
@@ -283,7 +295,7 @@ const AIResult: React.FC<AIResultProps> = ({ diagnosis, patientName, patientGend
     window.speechSynthesis.speak(utterance);
   };
 
-  const playChapter = async (index: number) => {
+  const playChapter = async (index: number, isOnlyPrepare: boolean = false) => {
     // Dispatch a global stop audio event with AIResult as sender to silence other players
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('app-stop-all-audio', { detail: { sender: 'AIResult' } }));
@@ -320,7 +332,9 @@ const AIResult: React.FC<AIResultProps> = ({ diagnosis, patientName, patientGend
     }
 
     try {
-      let buffer = cachedAudiosRef.current.get(index);
+      const currentVoice = selectedVoice;
+      const currentVoiceKey = `${currentVoice}_${index}`;
+      let buffer = (cachedAudiosRef.current as any).get(currentVoiceKey);
       
       if (!buffer) {
         setLoadingChapters(prev => {
@@ -329,30 +343,32 @@ const AIResult: React.FC<AIResultProps> = ({ diagnosis, patientName, patientGend
           return next;
         });
 
-        const activeVoiceName = selectedVoice;
         const chapterText = chapters[index].text;
         
         try {
-          // Fetch base64 audio with a generous 12 seconds timeout
-          const speechPromise = generateSpeech(chapterText, settings || undefined, activeVoiceName);
+          // Fetch base64 audio with a generous 15 seconds timeout for stability
+          const speechPromise = generateSpeech(chapterText, settings || undefined, currentVoice);
           const timeoutPromise = new Promise<null>((_, reject) => 
-            setTimeout(() => reject(new Error("AUDIO_GENERATION_TIMEOUT")), 12000)
+            setTimeout(() => reject(new Error("AUDIO_GENERATION_TIMEOUT")), 15000)
           );
           
           const base64Audio = await Promise.race([speechPromise, timeoutPromise]);
-          if (sessionId !== speechSessionIdRef.current) return;
-          if (!base64Audio) {
-            throw new Error("No audio returned from Gemini TTS engine");
-          }
+          
+          // Verify session and voice consistency after long network tasks
+          if (sessionId !== speechSessionIdRef.current || selectedVoice !== currentVoice) return;
+          
+          if (!base64Audio) throw new Error("EMPTY_VOICE_DATA");
 
           const ctxClass = window.AudioContext || (window as any).webkitAudioContext;
           const tempCtx = new ctxClass({ sampleRate: 24000 });
+          
+          // Use robust helper that handles various audio encodings including raw PCM
           buffer = await decodeAudioData(decodeBytes(base64Audio), tempCtx, 24000, 1);
           
-          // Cache
-          cachedAudiosRef.current.set(index, buffer);
+          // Store in high-performance local memory cache
+          (cachedAudiosRef.current as any).set(currentVoiceKey, buffer);
         } catch (apiError) {
-          console.warn("Gemini TTS high-fidelity failed on AIResult chapter, falling back to Web Speech Synthesis:", index, apiError);
+          console.error("Advanced Audio Fetch Failed in AIResult:", index, apiError);
           
           if (sessionId !== speechSessionIdRef.current) return;
 
@@ -362,31 +378,40 @@ const AIResult: React.FC<AIResultProps> = ({ diagnosis, patientName, patientGend
             return next;
           });
 
-          // Perform Web Speech synthesis directly as a high-durability backup
-          speakWithWebSpeech(chapterText, sessionId, () => {
-            if (sessionId !== speechSessionIdRef.current) return;
-            if (index + 1 < chapters.length) {
-              playChapter(index + 1);
-            } else {
-              stopSpeech();
-            }
-          });
-          return; // Skip native AudioContext player
+          stopSpeech();
+
+          // Offer professional fallback instead of closing silently
+          const confirmFallback = window.confirm(
+            "عذراً، واجهنا صعوبة في تحميل صوت الطبيب المخصص لهذا القسم. هل تود استخدام القارئ الأساسي (الآلي) للمتابعة؟"
+          );
+
+          if (confirmFallback) {
+            handleVoiceChange('WebSpeech');
+            setTimeout(() => playChapter(index), 100);
+          }
+          return;
         }
         
         if (sessionId !== speechSessionIdRef.current) return;
 
-        // Remove from loading set
         setLoadingChapters(prev => {
           const next = new Set(prev);
           next.delete(index);
           return next;
         });
+
+        if (isOnlyPrepare) {
+          alert("✅ تم تجهيز الصوت وتحميله بنجاح. يمكنك الآن الاستماع إليه بضغطة واحدة دون انقطاع.");
+          return;
+        }
+      } else if (isOnlyPrepare) {
+        alert("الصوت جاهز بالفعل في الذاكرة المحلية ومتاح للتشغيل الفوري.");
+        return;
       }
 
       if (sessionId !== speechSessionIdRef.current) return;
 
-      // Configure Web Audio API node context for playing
+      // Playback using Native Web Audio API for highest quality
       const ctxClass = window.AudioContext || (window as any).webkitAudioContext;
       const ctx = new ctxClass({ sampleRate: 24000 });
       activeAudioContext.current = ctx;
@@ -398,7 +423,6 @@ const AIResult: React.FC<AIResultProps> = ({ diagnosis, patientName, patientGend
 
       source.onended = () => {
         if (sessionId !== speechSessionIdRef.current) return;
-        // Only autoplay next if we ended naturally
         if (activeAudioSource.current === source) {
           activeAudioSource.current = null;
           if (index + 1 < chapters.length) {
@@ -412,11 +436,11 @@ const AIResult: React.FC<AIResultProps> = ({ diagnosis, patientName, patientGend
       activeAudioSource.current = source;
       source.start();
 
-      // Non-blocking pre-fetch the NEXT chapter!
+      // Pre-fetch the NEXT section in parallel to eliminate waiting gaps
       preFetchChapter(index + 1);
 
     } catch (err) {
-      console.error("Failed to play medical report chapter:", err);
+      console.error("Critical Failure in AIResult Audio Core:", err);
       if (sessionId !== speechSessionIdRef.current) return;
       setLoadingChapters(prev => {
         const next = new Set(prev);
@@ -424,6 +448,7 @@ const AIResult: React.FC<AIResultProps> = ({ diagnosis, patientName, patientGend
         return next;
       });
       stopSpeech();
+      alert("حدث خطأ تقني أثناء تشغيل التقرير الصوتي. يرجى المحاولة مرة أخرى.");
     }
   };
 
@@ -631,7 +656,7 @@ const AIResult: React.FC<AIResultProps> = ({ diagnosis, patientName, patientGend
       {/* Interactive Screen View */}
       <div className="bg-[#F8FAFC] w-full min-h-full relative lg:rounded-3xl overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-500 shrink-0 print:hidden" ref={pdfRef}>
       {/* Dynamic Header */}
-      <div className={`${severityColors[diagnosis.severity] || 'bg-blue-600'} p-5 lg:p-10 text-white relative overflow-hidden`}>
+      <div className={`${severityColors[diagnosis.severity] || 'bg-blue-600'} p-4 lg:p-7 text-white relative overflow-hidden`}>
         {/* Background Decorative Pattern */}
         <div className="absolute inset-0 opacity-10 pointer-events-none">
           <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
@@ -641,45 +666,94 @@ const AIResult: React.FC<AIResultProps> = ({ diagnosis, patientName, patientGend
           </svg>
         </div>
         
-        <div className="absolute top-0 right-0 w-64 h-64 lg:w-96 lg:h-96 bg-white/10 rounded-full blur-[100px] lg:blur-[120px] -mr-32 -mt-32 lg:-mr-48 lg:-mt-48"></div>
+        <div className="absolute top-0 right-0 w-64 h-64 lg:w-80 lg:h-80 bg-white/10 rounded-full blur-[80px] lg:blur-[100px] -mr-32 -mt-32 lg:-mr-40 lg:-mt-40"></div>
 
         <div className="relative z-10">
-          <div className="flex justify-between items-center mb-8 lg:mb-12">
-             <button onClick={onClose} data-html2canvas-ignore="true" className="p-2 lg:p-3 bg-white/10 hover:bg-white/20 rounded-xl lg:rounded-2xl transition-all backdrop-blur-md border border-white/10" title="عودة"><ChevronLeft className="w-4.5 h-4.5 lg:w-5.5 lg:h-5.5 rotate-180" /></button>
-             <div className="flex gap-2 lg:gap-2.5 flex-wrap justify-end" data-html2canvas-ignore="true">
-                <button onClick={handleListen} className="px-3.5 lg:px-5 py-2 lg:py-3 bg-white/10 hover:bg-white/20 rounded-xl lg:rounded-2xl flex items-center gap-2 lg:gap-2.5 text-[9px] lg:text-[10px] font-black transition-all backdrop-blur-md border border-white/10 uppercase tracking-widest">
-                   {isSpeaking ? <Square className="w-3 h-3 lg:w-3.5 lg:h-3.5 fill-current" /> : <Volume2 className="w-3 h-3 lg:w-3.5 lg:h-3.5" />}
+          <div className="flex justify-between items-center mb-4 lg:mb-6">
+             <button onClick={onClose} data-html2canvas-ignore="true" className="p-1.5 lg:p-2.5 bg-white/10 hover:bg-white/20 rounded-xl transition-all backdrop-blur-md border border-white/10" title="عودة"><ChevronLeft className="w-4 h-4 lg:w-5 h-5 rotate-180" /></button>
+             <div className="flex gap-1.5 lg:gap-2 flex-wrap justify-end" data-html2canvas-ignore="true">
+                {/* Dedicated Preparation Button to solve loading issues */}
+                <button 
+                  onClick={() => playChapter(speechState.currentChapter, true)}
+                  disabled={loadingChapters.has(speechState.currentChapter)}
+                  className={`px-3 lg:px-4 py-1.5 lg:py-2 rounded-xl flex items-center gap-1.5 lg:gap-2 text-[8px] lg:text-[10px] font-black transition-all backdrop-blur-md border uppercase tracking-widest shadow-lg active:scale-95 ${loadingChapters.has(speechState.currentChapter) ? 'bg-white/5 border-white/5 text-white/30 cursor-wait' : 'bg-blue-500/20 hover:bg-blue-500/30 border-blue-500/30 text-blue-100 hover:text-white'}`}
+                  title="تحميل وتجهيز الصوت محلياً"
+                >
+                  {loadingChapters.has(speechState.currentChapter) ? <Loader2 className="w-2.5 h-2.5 lg:w-3 h-3 animate-spin" /> : <Download className="w-2.5 h-2.5 lg:w-3 h-3" />}
+                  {loadingChapters.has(speechState.currentChapter) ? 'جاري التحميل...' : 'تجهيز الصوت'}
+                </button>
+
+                <button onClick={handleListen} className="px-3 lg:px-4 py-1.5 lg:py-2 bg-white/10 hover:bg-white/20 rounded-xl flex items-center gap-1.5 lg:gap-2 text-[8px] lg:text-[10px] font-black transition-all backdrop-blur-md border border-white/10 uppercase tracking-widest">
+                   {isSpeaking ? <Square className="w-2.5 h-2.5 lg:w-3 h-3 fill-current" /> : <Volume2 className="w-2.5 h-2.5 lg:w-3 h-3" />}
                    {isSpeaking ? 'إيقاف' : 'استماع'}
                 </button>
-                <button onClick={handleCopyText} title="نسخ التقرير" className="p-2 lg:p-3 bg-white/10 hover:bg-white/20 rounded-xl lg:rounded-2xl transition-all backdrop-blur-md border border-white/10"><Copy className="w-4.5 h-4.5 lg:w-5.5 lg:h-5.5" /></button>
-                <button onClick={handleShareWhatsApp} title="مشاركة عبر واتساب" className="p-2 lg:p-3 bg-white/10 hover:bg-white/20 rounded-xl lg:rounded-2xl transition-all backdrop-blur-md border border-white/10"><Share2 className="w-4.5 h-4.5 lg:w-5.5 lg:h-5.5" /></button>
-                <button onClick={handleDownloadPDF} title="تحميل PDF" className="p-2 lg:p-3 bg-white/10 hover:bg-white/20 rounded-xl lg:rounded-2xl transition-all backdrop-blur-md border border-white/10"><Download className="w-4.5 h-4.5 lg:w-5.5 lg:h-5.5" /></button>
-                <button onClick={() => window.print()} title="طباعة" className="p-2 lg:p-3 bg-white/10 hover:bg-white/20 rounded-xl lg:rounded-2xl transition-all backdrop-blur-md border border-white/10"><Printer className="w-4.5 h-4.5 lg:w-5.5 lg:h-5.5" /></button>
+                <button onClick={handleCopyText} title="نسخ التقرير" className="p-1.5 lg:p-2.5 bg-white/10 hover:bg-white/20 rounded-xl transition-all backdrop-blur-md border border-white/10"><Copy className="w-4 h-4 lg:w-5 h-5" /></button>
+                <button onClick={handleShareWhatsApp} title="مشاركة عبر واتساب" className="p-1.5 lg:p-2.5 bg-white/10 hover:bg-white/20 rounded-xl transition-all backdrop-blur-md border border-white/10"><Share2 className="w-4 h-4 lg:w-5 h-5" /></button>
+                <button onClick={handleDownloadPDF} title="تحميل PDF" className="p-1.5 lg:p-2.5 bg-white/10 hover:bg-white/20 rounded-xl transition-all backdrop-blur-md border border-white/10"><Download className="w-4 h-4 lg:w-5 h-5" /></button>
+                <button onClick={() => window.print()} title="طباعة" className="p-1.5 lg:p-2.5 bg-white/10 hover:bg-white/20 rounded-xl transition-all backdrop-blur-md border border-white/10"><Printer className="w-4 h-4 lg:w-5 h-5" /></button>
              </div>
           </div>
           <div className="max-w-4xl mx-auto text-center">
-             <div className="inline-flex items-center gap-1.5 px-3.5 py-1 bg-white/10 rounded-full text-[7px] lg:text-[9px] font-black uppercase tracking-[0.2em] mb-5 lg:mb-6 backdrop-blur-md border border-white/10">
+             <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 rounded-full text-[6px] lg:text-[8px] font-black uppercase tracking-[0.2em] mb-4 lg:mb-5 backdrop-blur-md border border-white/10">
                 <ShieldCheck className="w-3 h-3 text-blue-200" /> تحليل طبي متقدم
              </div>
-             <h2 className="text-2xl lg:text-4xl font-black mb-3 lg:mb-5 tracking-tight leading-tight drop-shadow-2xl">{diagnosis.conditionName}</h2>
-             <div className="flex flex-wrap justify-center items-center gap-2.5 lg:gap-6 text-[9px] lg:text-xs font-bold opacity-90">
-               <span className="flex items-center gap-1.5 px-2.5 py-1 bg-white/10 rounded-lg lg:rounded-xl border border-white/5">
-                 <Target className="w-3 h-3" /> دقة التحليل: {diagnosis.confidenceScore}%
-               </span>
-               <span className="w-1 h-1 bg-white/30 rounded-full hidden sm:block"></span>
-               <span className="flex items-center gap-1.5 px-2.5 py-1 bg-white/10 rounded-lg lg:rounded-xl border border-white/5">
-                 <UserCog className="w-3 h-3" /> المريض: {patientName}
-               </span>
-               <span className="w-1 h-1 bg-white/30 rounded-full hidden sm:block"></span>
-               <span className="flex items-center gap-1.5 px-2.5 py-1 bg-white/10 rounded-lg lg:rounded-xl border border-white/5 uppercase tracking-widest">
-                 <Activity className="w-3 h-3" /> الخطورة: {diagnosis.severity}
-               </span>
+             <div className="relative mb-4 lg:mb-8 w-full">
+                <div className="absolute inset-0 bg-white/5 blur-3xl rounded-full transform scale-150"></div>
+                <h2 className="relative text-xl lg:text-4xl font-black mb-3 lg:mb-4 tracking-tight leading-tight drop-shadow-xl">
+                  {diagnosis.conditionName}
+                </h2>
+                <div className="h-1 w-24 lg:w-32 bg-gradient-to-r from-transparent via-white/30 to-transparent mx-auto rounded-full"></div>
+             </div>
+             <div className="flex flex-wrap justify-center items-center gap-2 lg:gap-3 w-full max-w-3xl mx-auto mb-3">
+               {/* Accuracy Pill */}
+               <div className="flex items-center gap-2.5 bg-white/10 backdrop-blur-xl rounded-full px-4 py-2 border border-white/20 shadow-xl transition-all hover:bg-white/15 group">
+                 <div className="p-1 bg-blue-500/20 rounded-full text-blue-200 group-hover:scale-110 transition-transform">
+                   <Target className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
+                 </div>
+                 <div className="text-right">
+                   <div className="flex items-baseline gap-0.5">
+                     <span className="text-[11px] lg:text-[14px] font-black leading-none">{diagnosis.confidenceScore}</span>
+                     <span className="text-[8px] font-bold opacity-60">%</span>
+                   </div>
+                   <p className="text-[7px] lg:text-[8px] font-black uppercase tracking-[0.1em] text-white/50 mt-0.5 whitespace-nowrap">دقة التحليل</p>
+                 </div>
+               </div>
+
+               {/* Patient Pill */}
+               <div className="flex items-center gap-2.5 bg-white/10 backdrop-blur-xl rounded-full px-4 py-2 border border-white/20 shadow-xl transition-all hover:bg-white/15 group">
+                 <div className="p-1 bg-indigo-500/20 rounded-full text-indigo-200 group-hover:scale-110 transition-transform">
+                   <UserCog className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
+                 </div>
+                 <div className="text-right">
+                   <p className="text-[10px] lg:text-[13px] font-black leading-none truncate max-w-[100px]">{patientName}</p>
+                   <p className="text-[7px] lg:text-[8px] font-black uppercase tracking-[0.1em] text-white/50 mt-0.5 whitespace-nowrap">المريض</p>
+                 </div>
+               </div>
+
+               {/* Severity Pill */}
+               <div className="flex items-center gap-2.5 bg-white/10 backdrop-blur-xl rounded-full px-4 py-2 border border-white/20 shadow-xl transition-all hover:bg-white/15 group">
+                 <div className="p-1 bg-rose-500/20 rounded-full text-rose-200 group-hover:scale-110 transition-transform">
+                   <Activity className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
+                 </div>
+                 <div className="text-right">
+                   <p className="text-[10px] lg:text-[13px] font-black leading-none">{diagnosis.severity}</p>
+                   <p className="text-[7px] lg:text-[8px] font-black uppercase tracking-[0.1em] text-white/50 mt-0.5 whitespace-nowrap">الخطورة</p>
+                 </div>
+               </div>
+             </div>
+
+             <div className="flex items-center justify-center gap-1.5 opacity-60 mb-2">
+               <div className="h-[1px] w-4 bg-white/30"></div>
+               <p className="text-[7px] lg:text-[9px] font-bold text-white italic whitespace-nowrap">
+                 تم التحقق من هذا التشخيص بواسطة الذكاء الاصطناعي بناءً على البيانات المقدمة.
+               </p>
+               <div className="h-[1px] w-4 bg-white/30"></div>
              </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 lg:px-8 -mt-6 lg:-mt-8 pb-12 lg:pb-20 space-y-5 lg:space-y-6 relative z-20">
+      <div className="max-w-5xl mx-auto px-4 lg:px-8 -mt-6 lg:-mt-8 pb-12 lg:pb-20 space-y-5 lg:space-y-6 relative z-20">
         
         {/* لوحة التحكم بالقارئ الصوتي المدمج (قائمة منسدلة أنيقة وموفرة للمساحة والواجهة) */}
         <div className="bg-white rounded-xl lg:rounded-2xl border border-slate-100 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden" data-html2canvas-ignore="true">

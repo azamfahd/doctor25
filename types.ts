@@ -108,6 +108,7 @@ export interface SystemSettings {
   autoSave: boolean;
   voiceEnabled: boolean;
   voiceOutputEnabled: boolean;
+  defaultVoice: string; // الصوت المفضل للمعلق الطبي
   apiKey?: string;
 }
 

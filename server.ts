@@ -3,6 +3,8 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { createServer as createViteServer } from "vite";
+import { WebSocketServer } from "ws";
+import { createServer } from "http";
 
 // Clean logging helper functions to prevent automated log scanner false-positives
 const logWarnCleanly = (tag: string, err: any) => {
@@ -45,95 +47,129 @@ const logErrorCleanly = (tag: string, err: any) => {
 
 // Model and personality configuration helpers
 const getModelSpecificInstructions = (model: string, personality: string): string => {
-  const baseInstruction = `أنت "كبير الأطباء الاستشاريين ورئيس قسم التشخيص السريري المتقدم" (Chief Consultant of Clinical Diagnostics & Internal Medicine). أسلوبك: ${personality}. 
-يجب أن تفكر وتعمل كطبيب بشري استشاري خبير يطبق بدقة متناهية منهجية "الطب القائم على الدليل" (Evidence-Based Medicine). 
+  const baseInstruction = `أنت "كبير الأطباء الاستشاريين" (Chief Medical Consultant). أسلوبك: ${personality}.
+يجب أن تعمل كطبيب بشري خبير يطبق "الطب القائم على الأدلة" (Evidence-Based Medicine).
 
-قواعد وإرشادات صارمة وإلزامية:
-1. تشخيص حقيقي دقيق وغير وهمي إطلاقاً (Strictly Authentic & Non-Generic):
-   - يُحظر تماماً تقديم تشخيصات معلبة أو وهمية أو متكررة دون مبرر. يجب أن ينبع كل حرف في التشخيص من شكوى المريض، الأعراض، الفحص السريري، والفحوصات المرفقة فعلياً.
-   - إذا تم تقديم مؤشرات حيوية (ضغط الدم، النبض، الحرارة، نسبة تشبع الأكسجين SpO2)، قم بربطها فسيولوجياً بالأعراض وتحليل دلالاتها بدقة (مثل: ارتفاع الضغط، تسارع النبض، نقص التأكسج، أو الحمى).
-2. فحص الأشعة والصور والمختبر (Multimodal Scans & Lab Biomarkers Precision Analysis):
-   - في حال إرفاق صور أو ملفات PDF (أشعة سينية X-ray، رنين مغناطيسي MRI، أشعة مقطعية CT، تخطيط قلب ECG، صور جلدية، أو تقارير مخبرية مكتوبة): يجب فحصها وتحليلها بدقة سريرية فائقة.
-   - استخرج في حقل (imageFindings) وصفاً تشريحياً ودقيقاً لأي تغيرات مورفولوجية، ظلال مرضية، كسور، أو آفات إن وجدت في الصور المرفقة.
-   - إذا تضمنت المرفقات تقارير تحاليل دم (CBC) أو وظائف كلى/كبد أو سكر، حلل قيم كل فحص رقمي وقارنها بالمجال المرجعي بدقة في (labResultsAnalysis).
-   - يُحظر تماماً تجاهل أي ملف مرفق؛ كل صورة أو تقرير مرفق يجب أن يظهر تحليله السريري بوضوح في التقرير النهائي.
-3. التشخيص التفريقي (Differential Diagnosis):
-   - اذكر قائمة واقعية ومبررة لأهم 3 إلى 5 تشخيصات محتملة مع نسبة الاحتمالية (probability)، المنطق السريري (reasoning)، الأعراض المميزة (symptoms)، والأسباب (causes).
-4. بروتوكول الرعاية والخطة العلاجية (treatmentPlan):
-   - قدم خطة علاجية قائمة على أحدث الإرشادات الطبية المعتمدة تشمل فئات الأدوية الموصى بها مع الجرعات الإرشادية ومدة العلاج.
-5. التغذية العلاجية ونمط الحياة (dietaryAdvice & lifestyleChanges):
-   - فصّل الأغذية الموصى بها والممنوعة علمياً وأسباب المنع، وإرشادات النوم والحركة.
-6. العلامات التحذيرية الحمراء (urgentWarnings):
-   - حدد بوضوح الأعراض الخطيرة التي توجب مراجعة الطوارئ الفورية دون تأخير.
+بروتوكول التحليل السريري المتقدم (إلزامي):
+1. التحليل البصري والمخبري أولاً (Priority Analysis): قبل كتابة أي تشخيص، يجب عليك فحص وتحليل الصور المرفقة (أشعة، تقارير، صور سريرية) والتحاليل المخبرية بدقة متناهية. ابدأ دائماً باستخراج المكتشفات من الصور والبيانات قبل القفز للاستنتاج.
+2. تقييم كفاية البيانات (Data Sufficiency): إذا كانت الأعراض أو الصور المرفقة غير كافية لإعطاء تشخيص جازم، يجب عليك:
+   - البدء بالاعتذار للمريض/الطبيب بمهنية (مثال: "عذراً، البيانات الحالية غير كافية لتقديم تشخيص نهائي مؤكد...").
+   - ذكر المعلومات الناقصة التي تحتاجها (فحوصات معينة، صور أوضح).
+   - تقديم "التشخيص الأقرب للحالة" (Closest Possible Diagnosis) بناءً على ما هو متوفر فقط، مع توضيح أنه احتمال أولي.
+3. نسبة الثقة (Confidence Scoring): يجب تحديد نسبة ثقة مئوية (confidenceScore) دقيقة جداً (من 0 إلى 100). تعكس هذه النسبة مدى تطابق المعطيات مع المعايير الطبية العالمية.
+4. تحليل المؤشرات الحيوية: اربط قراءات الضغط والنبض والحرارة والأكسجين بالحالة الفسيولوجية المباشرة.
+5. التشخيص التفريقي: قدم أهم الاحتمالات مبررة علمياً.
+6. لغة واضحة ومميزة: الملخص (summary) يجب أن يكون احترافياً ومطمئناً وواضحاً جداً في ذكر اسم المرض المكتشف.
 
-يجب أن يكون الرد بتنسيق JSON حصرياً ومطابقاً للـ Schema المحددة.`;
+يجب أن يكون الرد بتنسيق JSON حصرياً وبدقة عالية.`;
 
   if (model.includes("pro")) {
-    return `${baseInstruction}
-تخصصك الدقيق: استشاري أول في الطب الباطني والحالات المعقدة (Internal Medicine & Complex Diagnostics).
-مطلوب منك: الغوص بعمق في الفسيولوجيا المرضية (Pathophysiology)، دراسة العوامل الجينية والمناعية، واستبعاد الاحتمالات عبر التشخيص التفريقي الدقيق.`;
+    return `${baseInstruction}\nتخصصك: استشاري أول باطنية وأمراض مزمنة. تعمق في الفسيولوجيا المرضية المعقدة.`;
   } else if (model.includes("lite")) {
-    return `${baseInstruction}
-تخصصك الدقيق: استشاري طب الطوارئ والفرز السريري (Emergency Medicine & Acute Triage).
-مطلوب منك: التقييم السريع والحاسم لدرجة الخطورة، كشف العلامات الحمراء فوراً، والتركيز على استقرار المريض السريري.`;
+    return `${baseInstruction}\nتخصصك: طب طوارئ وحالات حرجة. ركز على الفرز السريع والعلامات الحمراء القاتلة.`;
   } else {
-    return `${baseInstruction}
-تخصصك الدقيق: استشاري الطب السريري العام والممارسة الشاملة (Comprehensive Clinical Medicine).
-مطلوب منك: تقديم تقييم متوازن، دقيق، ومبني على الأدلة العلمية، مع صياغة خطة رعاية متكاملة وواضحة للمريض.`;
+    return `${baseInstruction}\nتخصصك: ممارس عام استشاري. قدم تقييماً شاملاً ومتوازناً يربط كافة الأجهزة الحيوية.`;
   }
 };
 
 const getModelSpecificPrompt = (model: string, patientData: any, thinkingBudget: number, isThinkingEnabled: boolean): string => {
-  let basePrompt = `
-    [ملف طبي إلكتروني - EMR]
-    البيانات الديموغرافية:
-    - الاسم: ${patientData.name} | العمر: ${patientData.age} | الجنس: ${patientData.gender}
-    
-    الشكوى الرئيسية وتاريخ المرض / النصوص المدخلة (Chief Complaint & HPI / Lab Reports):
-    - ${patientData.symptoms}
-    
-    الفحص السريري والمؤشرات الحيوية (Objective Vitals):
-    - ضغط الدم: ${patientData.vitals?.bloodPressure}
-    - معدل النبض: ${patientData.vitals?.pulse}
-    - درجة الحرارة: ${patientData.vitals?.temperature}
-    - نسبة تشبع الأكسجين: ${patientData.vitals?.spo2}
-    - الموقع التشريحي المكتشف للمستشعر: ${patientData.vitals?.bodySite || 'موقع غير محدد'}
-    - التحقق الذكي من حيوية الأنسجة (Liveness Status): ${patientData.vitals?.livenessChecked ? 'تم التحقق بنجاح من كونه نسيجاً حياً وبشرياً (Living capillary blood flow confirmed)' : 'لم يتم التأكد أو تم الإدخال يدوياً'}
-    
-    (توجيه طبي هام: بما أن النظام مدمج بمستشعر ذكي عالي الدقة يحدد الموقع التشريحي بدقة (مثل شحمة الأذن أو السبابة أو المعصم) ويتحقق من كونه نسيجاً حياً بشرياً حقيقياً يضخ الدم بانتظام وليس جماداً، يجب أن تعكس في تحليلك التفصيلي (detailedAnalysis) وفي الملخص (summary) هذا الموقع التشريحي، وتشرح فسيولوجياً كيف يتطابق تدفق الدم الشعيري أو الشرياني فيه مع مؤشرات المريض الحيوية. لا تقبل أو تعرض بيانات وهمية أو تحليلات غير دقيقة، وتأكد أن التشخيص عميق ومترابط طبياً 100%).
-  `;
-
   let detailLevelInstruction = "";
   if (isThinkingEnabled) {
     if (thinkingBudget <= 8000) {
-      detailLevelInstruction = "\n[توجيه سريع: اكتب الملخص (summary) بجُمل قصيرة ومطمئنة للمريض. واكتب التحليل (detailedAnalysis) للطبيب يشرح السبب المباشر فقط].";
+      detailLevelInstruction = "\n[توجيه: ركز على التحليل السريع والمباشر للصور والنتائج].";
     } else if (thinkingBudget <= 16000) {
-      detailLevelInstruction = "\n[توجيه احترافي: الملخص (summary) يجب أن يكون مبسطاً ولطيفاً يفهمه أي مريض، بينما التحليل (detailedAnalysis) يجب أن يكون تقريراً طبياً دقيقاً يربط الأعراض بعلم الأمراض].";
-    } else if (thinkingBudget <= 24000) {
-      detailLevelInstruction = "\n[توجيه استشاري: الملخص (summary) يجب أن يوصل المعلومة الشاملة للمريض بأسلوب سردي احترافي مفهوم. التحليل (detailedAnalysis) يجب أن يشرح الآلية المرضية (Pathophysiology) بعمق طبي متقدم].";
+      detailLevelInstruction = "\n[توجيه احترافي: حلل الصور والتحاليل أولاً، ثم اربطها سريرياً بالأعراض، واكتب تقريراً مفصلاً].";
     } else {
-      detailLevelInstruction = "\n[توجيه بحثي واستشاري عميق: خصص قسم الـ summary ليقرأه شخص لا يعرف الطب إطلاقاً، واجعله مطمئناً. أما الـ detailedAnalysis فيجب أن يكون بحثاً طبياً مفصلاً يحلل كل احتمال وكل مؤشر حيوي بناءً على أحدث البروتوكولات].";
+      detailLevelInstruction = "\n[توجيه استشاري عميق: قم بعمل دراسة حالة شاملة. ابدأ بالتحليل البصري والمخبري الدقيق، ثم استنتج التشخيص الأقرب مع نسبة ثقة حقيقية].";
     }
   }
 
-  if (model.includes("pro-preview")) {
-    return basePrompt + detailLevelInstruction + `\nالرجاء إجراء تحليل طبي استدلالي عميق. قم بربط العمر والجنس بالأعراض لتضييق الاحتمالات، استكشف الاحتمالات النادرة، وقدم مبررات علمية دقيقة لكل تشخيص تفريقي.`;
-  } else if (model.includes("image-preview")) {
-    return basePrompt + detailLevelInstruction + `\nالرجاء فحص الصور المرفقة بدقة سريرية. استخرج أي علامات مرضية مرئية، وادمجها مع الفحص السريري والأعراض للوصول لتشخيص دقيق في قسم (imageFindings).`;
-  } else if (model.includes("lite-preview")) {
-    return basePrompt + detailLevelInstruction + `\nالرجاء إجراء فرز سريع (Triage). حدد مستوى الخطورة فوراً، وأبرز أي تحذيرات عاجلة (urgentWarnings) تتطلب تدخلاً طبياً طارئاً.`;
-  } else {
-    return basePrompt + detailLevelInstruction + `\nالرجاء إجراء تحليل طبي شامل، تقييم الخطورة السريرية، ووضع خطة رعاية متكاملة.`;
-  }
+  return `
+    [سجل المريض الرقمي]
+    الاسم: ${patientData.name} | العمر: ${patientData.age} | الجنس: ${patientData.gender}
+    
+    الأعراض والشكوى الرئيسية والتحاليل النصية:
+    ${patientData.symptoms}
+    
+    المؤشرات الحيوية المقاسة:
+    - ضغط الدم: ${patientData.vitals?.bloodPressure}
+    - النبض: ${patientData.vitals?.pulse}
+    - الحرارة: ${patientData.vitals?.temperature}
+    - نسبة الأكسجين: ${patientData.vitals?.spo2}
+    - موقع الفحص: ${patientData.vitals?.bodySite || 'غير محدد'}
+    - حالة التحقق البشري: ${patientData.vitals?.livenessChecked ? 'تم التحقق من الأنسجة الحية' : 'إدخال يدوي'}
+    [نهاية السجل]
+
+    التعليمات التنفيذية:
+    1. قم بتحليل أي صور أو ملفات PDF مرفقة "أولاً" واستخرج منها النتائج السريرية.
+    2. قارن النتائج البصرية مع الأعراض والمؤشرات الحيوية المذكورة أعلاه.
+    3. إذا كانت المعلومات غير كافية، اعتذر بوضوح وحدد النواقص، ثم اذكر المرض "الأقرب" للحالة.
+    4. حدد نسبة الثقة (confidenceScore) بناءً على قوة الأدلة المتوفرة.
+    5. اكتب اسم المرض بشكل واضح ومميز في حقل (conditionName).${detailLevelInstruction}
+    6. الرد يجب أن يكون باللغة العربية الطبية الرصينة.
+  `;
 };
 
 async function startServer() {
   const app = express();
   const PORT = 3000;
+  const httpServer = createServer(app);
+  const wss = new WebSocketServer({ server: httpServer, path: "/api/live-proxy" });
 
   // Use JSON and URL-encoded body parsing with larger limits for images/audio
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
+
+  // Multimodal Live API Relay
+  wss.on("connection", (ws) => {
+    let geminiLive: any = null;
+    let apiKey = process.env.GEMINI_API_KEY;
+
+    ws.on("message", async (data) => {
+      try {
+        const msg = JSON.parse(data.toString());
+
+        if (msg.type === "setup") {
+          const clientApiKey = msg.settings?.apiKey;
+          const finalKey = clientApiKey || apiKey;
+          
+          if (!finalKey) {
+            ws.send(JSON.stringify({ type: "error", message: "MISSING_API_KEY" }));
+            return;
+          }
+
+          const ai = new GoogleGenAI({ apiKey: finalKey });
+          try {
+            geminiLive = await ai.live.connect({
+              model: msg.model || "gemini-3.8-live",
+              config: msg.config,
+              callbacks: {
+                onopen: () => ws.send(JSON.stringify({ type: "open" })),
+                onmessage: (m) => ws.send(JSON.stringify({ type: "message", data: m })),
+                onclose: () => {
+                  ws.send(JSON.stringify({ type: "close" }));
+                  ws.close();
+                },
+                onerror: (e) => ws.send(JSON.stringify({ type: "error", message: e.message })),
+              },
+            });
+          } catch (connErr: any) {
+            ws.send(JSON.stringify({ type: "error", message: connErr.message }));
+          }
+        } else if (msg.type === "input" && geminiLive) {
+          geminiLive.sendRealtimeInput(msg.data);
+        }
+      } catch (err) {
+        logErrorCleanly("Live Proxy Error", err);
+      }
+    });
+
+    ws.on("close", () => {
+      if (geminiLive) {
+        geminiLive.close();
+      }
+    });
+  });
 
   // API Endpoints
   app.post("/api/analyze-case", async (req, res) => {
@@ -217,21 +253,17 @@ async function startServer() {
         config.tools = [{ googleSearch: {} }];
       }
 
-      // Autonomous Clinical Model & Reasoning Orchestration
-      const hasImages = patientData?.images && Array.isArray(patientData.images) && patientData.images.length > 0;
-      const symptomsText = ((patientData?.symptoms || '') + ' ' + (patientData?.notes || '') + ' ' + (patientData?.medicalHistory || '')).toLowerCase();
-      const hasLabKeywords = /(تحليل|مختبر|فحص|cbc|creatinine|blood sugar|glucose|ecg|troponin|alt|ast|inr|wbc|crp|esr|رنين|أشعة|x-ray|ct scan|mri|sonar|ultrasound)/i.test(symptomsText);
       const isAuto = !settings?.model || settings.model === 'auto' || settings.autoModelRouting !== false;
 
-      let configuredModel = 'gemini-3.1-pro-preview';
+      let configuredModel = 'gemini-1.5-pro';
       if (isAuto) {
-        configuredModel = 'gemini-3.1-pro-preview';
+        configuredModel = 'gemini-1.5-pro';
       } else if (settings.model?.includes('lite')) {
-        configuredModel = 'gemini-3.1-flash-lite';
+        configuredModel = 'gemini-1.5-flash';
       } else if (settings.model?.includes('flash')) {
-        configuredModel = 'gemini-3.8-flash';
+        configuredModel = 'gemini-1.5-flash';
       } else {
-        configuredModel = 'gemini-3.1-pro-preview';
+        configuredModel = 'gemini-1.5-pro';
       }
 
       let response;
@@ -239,9 +271,9 @@ async function startServer() {
 
       const modelsToTry = Array.from(new Set([
         configuredModel,
-        'gemini-3.1-pro-preview',
-        'gemini-3.8-flash',
-        'gemini-3.1-flash-lite'
+        'gemini-1.5-pro',
+        'gemini-1.5-flash',
+        'gemini-2.0-flash-exp'
       ]));
 
       for (const modelName of modelsToTry) {
@@ -292,7 +324,6 @@ async function startServer() {
       }
 
       const ai = new GoogleGenAI({ apiKey });
-      const modelName = settings?.model || "gemini-2.5-flash";
 
       const casesSummary = cases.map((c: any, index: number) => {
         return `
@@ -310,34 +341,17 @@ async function startServer() {
 
       const systemInstruction = `أنت "كبير الأطباء الاستشاريين ومحلل البيانات السريرية" (Chief Medical Data Analyst).
       مهمتك هي مراجعة وتجميع وتحليل ومقارنة قائمة من الحالات السريرية والتشخيصات الحرارية والفسيولوجية المتوفرة لدى الطبيب.
-      
-      يجب أن تقوم بتقديم ملخص سريري تجميعي ذكي وقوي للغاية (Clinical Synthesis Report) باللغة العربية الفصحى الطبية الرصينة، يوضح بدقة متناهية:
-      1. **التحليل المقارن للحالات (Comparative Analysis)**: مقارنة المؤشرات الحيوية والتوزيعات الحرارية ومستوى الخطورة بين المرضى، والبحث عن أي قواسم مشتركة أو عوامل خطر متقاطعة (مثل أنماط ارتفاع الضغط أو الحرارة المشتركة أو العدوى الموسمية).
-      2. **تحليل المؤشرات والتروية الحرارية**: مناقشة دقة القراءات الحرارية المأخوذة للسبابة أو شحمة الأذن أو الجبهة، وشرح مدى موثوقية هذه البيانات حيوياً استناداً للتحقق من الأنسجة الحية (Liveness validation).
-      3. **تحليل الاتجاهات والمخاطر السريرية (Clinical Trends & Risk Profiling)**: تحديد الحالات التي تحتاج لتدخل سريع ومقارنتها بالحالات المستقرة، مع تقديم إحصائيات بصرية ملخصة بالنص (مثل توزيع الحالات حسب الخطورة، النبض الوسطي، إلخ).
-      4. **توصيات استشارية موحدة (Unified Clinical Guidance)**: اقتراح الفحوصات الإضافية، التعديلات الغذائية المشتركة، وأساليب الرعاية الطبية المثلى للمجموعة.
-      
-      استخدم لغة قوية واحترافية خالية من "الهلوسة" أو الادعاءات الوهمية. يجب تنظيم المخرجات باستخدام عناصر التنسيق الفاخرة مثل القوائم، العناوين الملونة (باستخدام الماركداون والرموز التعبيرية المناسبة طبياً)، واقتباسات التنبيه.`;
+      تقديم ملخص سريري تجميعي ذكي وقوي للغاية (Clinical Synthesis Report) باللغة العربية الفصحى الطبية الرصينة.`;
 
-      const prompt = `
-      الرجاء دراسة ومقارنة السجلات الطبية والتشخيصية التالية دراسة عميقة لتقديم تقرير استشاري تجميعي متكامل:
-      
-      [بيانات السجلات والحالات السريرية المستهدفة للمقارنة]
-      ${casesSummary}
-      
-      التقرير المطلوب تصميمه وبناؤه:
-      - اكتب تحليلاً مقارناً مفصلاً يتناول الأعراض والمؤشرات الحيوية والتأكيدات الحرارية.
-      - حدد نقاط الخطر والعلاقات السريرية بين المرضى والاتجاهات الوبائية أو الفسيولوجية العامة.
-      - ركز على موثوقية الأجهزة وحقائق المؤشرات دون أي افتراضات وهمية.
-      `;
+      const prompt = `الرجاء دراسة ومقارنة السجلات الطبية والتشخيصية التالية لتقديم تقرير تجميعي:\n${casesSummary}`;
 
       let response;
       let lastConsolidateError: any = null;
 
       const consolidateModelsToTry = Array.from(new Set([
-        'gemini-3.8-flash',
-        'gemini-3.1-pro-preview',
-        'gemini-3.1-flash-lite'
+        'gemini-1.5-flash',
+        'gemini-1.5-pro',
+        'gemini-2.0-flash-exp'
       ]));
 
       for (const modelToTry of consolidateModelsToTry) {
@@ -374,90 +388,6 @@ async function startServer() {
     }
   });
 
-  app.post("/api/generate-speech", async (req, res) => {
-    try {
-      const { text, settings, voiceName } = req.body;
-      
-      const apiKey = settings?.apiKey || process.env.GEMINI_API_KEY;
-      if (!apiKey) {
-        return res.status(400).json({ error: "MISSING_API_KEY" });
-      }
-
-      const ai = new GoogleGenAI({ apiKey });
-      
-      const cleanTextForTTS = (input: string): string => {
-        if (!input) return "";
-        let clean = input;
-        clean = clean.replace(/(\d+)\s*%\s*/g, "$1 بالمئة ");
-        clean = clean.replace(/%/g, " بالمئة ");
-        clean = clean.replace(/\b(bpm|BPM)\b/gi, " نبضة في الدقيقة ");
-        clean = clean.replace(/\b(mg|MG)\b/gi, " مليجرام ");
-        clean = clean.replace(/\b(ml|ML)\b/gi, " مليلتر ");
-        clean = clean.replace(/\b(kg|KG)\b/gi, " كيلوجرام ");
-        clean = clean.replace(/\b(g|G)\b/gi, " جرام ");
-        clean = clean.replace(/°\s*C/gi, " درجة مئوية ");
-        clean = clean.replace(/\bCelsius\b/gi, " درجة مئوية ");
-        clean = clean.replace(/\b(pH|PH)\b/g, " بي إتش ");
-        clean = clean.replace(/[\u2600-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF]/g, "");
-        clean = clean.replace(/\*\*/g, " ");
-        clean = clean.replace(/\*/g, " ");
-        clean = clean.replace(/#/g, " ");
-        clean = clean.replace(/`/g, " ");
-        clean = clean.replace(/~/g, " ");
-        clean = clean.replace(/_+/g, " ");
-        clean = clean.replace(/[●•\-+]/g, " ");
-        clean = clean.replace(/[a-zA-Z]/g, " ");
-        clean = clean.replace(/[\[\]\(\)\{\}]/g, " ");
-        clean = clean.replace(/[:؛;!؟?]/g, "، ");
-        clean = clean.replace(/[#@$^&*|\\/=<>]/g, " ");
-        clean = clean.replace(/\s+/g, " ");
-        return clean.trim();
-      };
-
-      const sanitizedText = cleanTextForTTS(text);
-      if (!sanitizedText) {
-        return res.json({ audioData: "" });
-      }
-
-      let audioData = "";
-      try {
-        const response = await ai.models.generateContent({
-          model: "gemini-3.8-flash-lite-tts",
-          contents: [{ parts: [{ text: sanitizedText }] }],
-          config: {
-            responseModalities: [Modality.AUDIO],
-            speechConfig: { 
-              voiceConfig: { 
-                prebuiltVoiceConfig: { voiceName: voiceName || 'Puck' } 
-              } 
-            },
-          },
-        });
-        audioData = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data || "";
-      } catch (e: any) {
-        logWarnCleanly("TTS primary service transition", e);
-        try {
-          const response = await ai.models.generateContent({
-            model: "gemini-3.8-flash-tts",
-            contents: [{ parts: [{ text: sanitizedText }] }],
-            config: {
-              responseModalities: [Modality.AUDIO],
-              speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voiceName || 'Puck' } } },
-            },
-          });
-          audioData = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data || "";
-        } catch (fallbackError) {
-          logErrorCleanly("TTS fallback service transition", fallbackError);
-        }
-      }
-
-      res.json({ audioData });
-    } catch (err: any) {
-      logErrorCleanly("TTS speech generation error", err);
-      res.status(500).json({ error: err.message || "Failed to generate speech" });
-    }
-  });
-
   app.post("/api/chat-message", async (req, res) => {
     try {
       const { patient, settings, history, messageContent, fallbackModelOverride } = req.body;
@@ -471,7 +401,7 @@ async function startServer() {
       
       let selectedModel = fallbackModelOverride || settings.model;
       if (selectedModel === 'gemini-3.1-flash-live-preview') {
-        selectedModel = 'gemini-3-flash-preview';
+        selectedModel = 'gemini-3.5-flash';
       }
 
       const clinicalContext = `
@@ -486,7 +416,6 @@ async function startServer() {
         الخطة العلاجية الحالية: ${patient.diagnosis?.treatmentPlan?.join('، ')}
       `;
 
-      // Map chat messages to the format expected by GoogleGenAI
       const mappedHistory = history.map((msg: any) => {
         const parts: any[] = [{ text: msg.text }];
         if (msg.images && msg.images.length > 0) {
@@ -519,7 +448,6 @@ ${clinicalContext}
 الأسلوب المعتمد: ${settings.personality}.`;
 
       let parsedMessageContent = messageContent;
-      // Handle attachments if they are sent in structured form from the client-side
       if (Array.isArray(messageContent)) {
         parsedMessageContent = messageContent.map((part: any) => {
           if (part.inlineData) {
@@ -538,14 +466,9 @@ ${clinicalContext}
       let lastChatError: any = null;
 
       const chatModelsToTry = Array.from(new Set([
-        selectedModel || 'gemini-3.1-pro-preview',
-        'gemini-3.6-flash',
-        'gemini-3.5-pro',
-        'gemini-3.1-pro-preview',
-        'gemini-3.5-flash',
-        'gemini-2.5-pro',
-        'gemini-2.5-flash',
-        'gemini-3-flash-preview'
+        selectedModel || 'gemini-1.5-pro',
+        'gemini-1.5-flash',
+        'gemini-2.0-flash-exp'
       ]));
 
       for (const chatModelName of chatModelsToTry) {
@@ -584,7 +507,6 @@ ${clinicalContext}
     }
   });
 
-  // High-fidelity Medical Speech Generation API (TTS)
   app.post("/api/generate-speech", async (req, res) => {
     try {
       const { text, settings, voiceName } = req.body;
@@ -593,17 +515,16 @@ ${clinicalContext}
         return res.status(400).json({ error: "MISSING_API_KEY" });
       }
 
-      if (!text || typeof text !== "string" || !text.trim()) {
-        return res.status(400).json({ error: "EMPTY_TEXT" });
-      }
-
+      const ai = new GoogleGenAI({ apiKey });
+      
       const cleanTextForTTS = (input: string): string => {
+        if (!input) return "";
         let clean = input;
         clean = clean.replace(/(\d+)\s*%\s*/g, "$1 بالمئة ");
         clean = clean.replace(/%/g, " بالمئة ");
         clean = clean.replace(/\b(bpm|BPM)\b/gi, " نبضة في الدقيقة ");
         clean = clean.replace(/\b(mg|MG)\b/gi, " مليجرام ");
-        clean = clean.replace(/\b(ml|ML)\b/gi, " مليلتر ");
+        clean = clean.replace(/\b(ml|ML)\b/gi, " mليلتر ");
         clean = clean.replace(/\b(kg|KG)\b/gi, " كيلوجرام ");
         clean = clean.replace(/\b(g|G)\b/gi, " جرام ");
         clean = clean.replace(/°\s*C/gi, " درجة مئوية ");
@@ -611,7 +532,6 @@ ${clinicalContext}
         clean = clean.replace(/\b(pH|PH)\b/g, " بي إتش ");
         clean = clean.replace(/[\u2600-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF]/g, "");
         clean = clean.replace(/\*\*/g, " ");
-        clean = clean.replace(/\*/g, " ");
         clean = clean.replace(/#/g, " ");
         clean = clean.replace(/`/g, " ");
         clean = clean.replace(/~/g, " ");
@@ -626,70 +546,53 @@ ${clinicalContext}
 
       const sanitizedText = cleanTextForTTS(text);
       if (!sanitizedText) {
-        return res.status(400).json({ error: "CLEANED_TEXT_EMPTY" });
+        return res.json({ audioData: "" });
       }
 
-      const ai = new GoogleGenAI({ apiKey });
-      const targetVoice = (voiceName && voiceName !== 'WebSpeech') ? voiceName : 'Kore';
-
-      // TTS models to try: gemini-3.8-flash-lite-tts -> gemini-3.8-flash-tts -> gemini-3.1-flash-tts-preview
+      let audioData = "";
+      let lastTtsError: any = null;
+      
+      // Multi-model fallback sequence for highest reliability in voice generation
       const ttsModels = [
-        'gemini-3.8-flash-lite-tts',
-        'gemini-3.8-flash-tts',
-        'gemini-3.1-flash-tts-preview'
+        "gemini-1.5-flash", 
+        "gemini-2.0-flash-exp",
+        "gemini-1.5-pro"
       ];
-
-      let audioData: string | null = null;
-      let lastTTSError: any = null;
 
       for (const modelName of ttsModels) {
         try {
           const response = await ai.models.generateContent({
             model: modelName,
-            contents: [
-              {
-                role: "user",
-                parts: [
-                  {
-                    text: sanitizedText,
-                    speechMetadata: {
-                      style: "Clear, reassuring, professional medical consultant speaking formal Arabic"
-                    }
-                  }
-                ]
-              }
-            ] as any,
+            contents: [{ parts: [{ text: sanitizedText }] }],
             config: {
               responseModalities: [Modality.AUDIO],
-              speechConfig: {
-                voiceConfig: {
-                  prebuiltVoiceConfig: { voiceName: targetVoice }
-                }
-              }
-            }
+              speechConfig: { 
+                voiceConfig: { 
+                  prebuiltVoiceConfig: { voiceName: voiceName || 'Puck' } 
+                } 
+              },
+            },
           });
 
-          const base64 = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-          if (base64) {
-            audioData = base64;
-            break;
+          const generatedData = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+          if (generatedData) {
+            audioData = generatedData;
+            break; // Success!
           }
-        } catch (err: any) {
-          lastTTSError = err;
-          logWarnCleanly(`TTS model ${modelName} failed, trying next...`, err);
+        } catch (e: any) {
+          lastTtsError = e;
+          logWarnCleanly(`TTS attempt with ${modelName} encountered issue`, e);
         }
       }
 
-      if (!audioData) {
-        throw lastTTSError || new Error("Failed to generate speech audio");
+      if (!audioData && lastTtsError) {
+        // If all models fail, return a structured error so the client can show the fallback prompt
+        return res.status(500).json({ error: "ALL_TTS_MODELS_FAILED", details: lastTtsError.message });
       }
 
-      res.json({
-        audioData,
-        mimeType: "audio/wav"
-      });
+      res.json({ audioData });
     } catch (err: any) {
-      logErrorCleanly("Speech generation error", err);
+      logErrorCleanly("TTS speech generation error", err);
       res.status(500).json({ error: err.message || "Failed to generate speech" });
     }
   });
@@ -709,7 +612,7 @@ ${clinicalContext}
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
+  httpServer.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://0.0.0.0:${PORT}`);
   });
 }

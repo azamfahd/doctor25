@@ -815,6 +815,21 @@ const Settings: React.FC<SettingsProps> = ({ settings, setSettings, onSave, onCl
                       placeholder="مركز الشفاء..."
                     />
                  </div>
+                 <div className="space-y-1 lg:space-y-1.5">
+                    <label className="text-[7px] lg:text-[8px] font-black text-slate-400 uppercase tracking-widest block mr-1 lg:mr-1.5">الصوت المفضل للمعلق الطبي</label>
+                    <select
+                      value={settings.defaultVoice}
+                      onChange={(e) => setSettings({...settings, defaultVoice: e.target.value})}
+                      className="w-full bg-slate-50 border border-slate-100 rounded-lg lg:rounded-xl p-2.5 lg:p-3.5 font-bold text-[10px] lg:text-[11px] outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer"
+                    >
+                      <option value="WebSpeech">القارئ الفوري الذكي ⚡</option>
+                      <option value="Zephyr">د. سمير (استشاري)</option>
+                      <option value="Kore">د. منال (استشارية)</option>
+                      <option value="Puck">أخصائية ياسمين (هادئ)</option>
+                      <option value="Charon">د. عاصم (عميق)</option>
+                      <option value="Fenrir">د. فواز (جاد)</option>
+                    </select>
+                 </div>
               </div>
            </section>
 

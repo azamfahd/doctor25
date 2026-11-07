@@ -10,6 +10,7 @@ import {
 import { PatientCase, ChatMessage, SystemSettings, ModelType } from '../types';
 import { startFollowUpChat, generateSpeech, getAI } from '../services/geminiService';
 import { GoogleGenAI, Modality, LiveServerMessage } from '@google/genai';
+import { getWebSocketUrl } from '../utils/urlHelper';
 
 // Audio Helpers
 function encode(bytes: Uint8Array) {
@@ -189,24 +190,27 @@ const ConsultSession: React.FC<ConsultSessionProps> = ({ patient, settings, onCl
     window.speechSynthesis.speak(utterance);
   };
 
-  const playAIResponse = async (text: string, msgIndex?: number) => {
+  // Persistent cache for decoded AudioBuffers to prevent re-downloads and ensure instant replay
+  const decodedBuffersCache = useRef<Map<string, AudioBuffer>>(new Map());
+
+  const playAIResponse = async (text: string, msgIndex?: number, isOnlyPrepare: boolean = false) => {
     if (msgIndex !== undefined && playingMessageIndex === msgIndex) {
       stopAISpeaking();
       return;
     }
     
-    // Dispatch a global stop audio event to stop other speech players in the app
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('app-stop-all-audio', { detail: { sender: 'ConsultSession' } }));
     }
     
     stopAISpeaking();
     const sessionId = ++speechSessionIdRef.current;
+    const currentVoice = selectedVoice;
     
     try {
       if (msgIndex !== undefined) setPlayingMessageIndex(msgIndex);
 
-      if (selectedVoice === 'WebSpeech') {
+      if (currentVoice === 'WebSpeech') {
         setIsSpeaking(true);
         speakWithWebSpeech(text, sessionId, () => {
           if (sessionId !== speechSessionIdRef.current) return;
@@ -216,55 +220,102 @@ const ConsultSession: React.FC<ConsultSessionProps> = ({ patient, settings, onCl
         return;
       }
 
+      // Check local persistent memory cache first for this specific voice and text
+      const cacheKey = `${currentVoice}_${text.substring(0, 50)}_${msgIndex || 'new'}`;
+      let cachedBuffer = decodedBuffersCache.current.get(cacheKey);
+
+      if (cachedBuffer) {
+        setIsAudioLoading(false);
+        if (isOnlyPrepare) {
+          alert("✅ الصوت جاهز بالفعل في الذاكرة المحلية ومتاح للتشغيل الفوري.");
+          return;
+        }
+        const ctx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+        activeAudioContext.current = ctx;
+        const source = ctx.createBufferSource();
+        source.buffer = cachedBuffer;
+        source.connect(ctx.destination);
+        source.onended = () => {
+          if (sessionId !== speechSessionIdRef.current) return;
+          setIsSpeaking(false);
+          setPlayingMessageIndex(null);
+          activeAudioSource.current = null;
+        };
+        activeAudioSource.current = source;
+        setIsSpeaking(true);
+        source.start();
+        return;
+      }
+
       setIsAudioLoading(true);
       
       let base64Audio = msgIndex !== undefined ? messages[msgIndex]?.audioData : undefined;
       
       if (!base64Audio) {
         try {
-          const speechPromise = generateSpeech(text, settings, selectedVoice);
+          const fetchAudio = async () => {
+            const raw = await generateSpeech(text, settings, currentVoice);
+            if (!raw) throw new Error("EMPTY_AUDIO_RESPONSE");
+            return raw;
+          };
+
+          const speechPromise = fetchAudio();
           const timeoutPromise = new Promise<null>((_, reject) => 
-            setTimeout(() => reject(new Error("AUDIO_GENERATION_TIMEOUT")), 12000)
+            setTimeout(() => reject(new Error("AUDIO_NETWORK_TIMEOUT")), 15000)
           );
           
           base64Audio = await Promise.race([speechPromise, timeoutPromise]);
           if (sessionId !== speechSessionIdRef.current) return;
           
-          if (!base64Audio) {
-            throw new Error("No high-fidelity audio returned (Quota limits or API unavailable)");
-          }
+          if (!base64Audio) throw new Error("VOICE_SOURCE_UNAVAILABLE");
 
           if (msgIndex !== undefined) {
             setMessages(prev => {
               const newMessages = [...prev];
               if (newMessages[msgIndex]) {
                 newMessages[msgIndex] = { ...newMessages[msgIndex], audioData: base64Audio! };
-                onUpdateHistory(newMessages); // trigger sync
+                onUpdateHistory(newMessages);
               }
               return newMessages;
             });
           }
         } catch (apiError) {
-          console.warn("Gemini TTS high-fidelity failed in ConsultSession, falling back to Web Speech API:", apiError);
+          console.error("Critical Voice Loading Error in ConsultSession:", apiError);
           if (sessionId !== speechSessionIdRef.current) return;
           setIsAudioLoading(false);
-          setIsSpeaking(true);
-          
-          speakWithWebSpeech(text, sessionId, () => {
-            if (sessionId !== speechSessionIdRef.current) return;
-            setIsSpeaking(false);
-            setPlayingMessageIndex(null);
-          });
+          stopAISpeaking();
+
+          const confirmFallback = window.confirm(
+            "⚠️ تعذر جلب صوت الطبيب المخصص حالياً. هل تود استخدام القارئ الآلي المدمج للمتابعة؟"
+          );
+
+          if (confirmFallback) {
+            setSelectedVoice('WebSpeech');
+            setTimeout(() => playAIResponse(text, msgIndex), 100);
+          }
           return;
         }
       }
 
       if (sessionId !== speechSessionIdRef.current) return;
 
+      // Decode bytes and use robust helper that handles raw PCM fallbacks
       const ctx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
       activeAudioContext.current = ctx;
       
       const buffer = await decodeAudioData(decode(base64Audio), ctx, 24000, 1);
+      
+      // Save to local cache for instant replay
+      decodedBuffersCache.current.set(cacheKey, buffer);
+
+      if (isOnlyPrepare) {
+        setIsAudioLoading(false);
+        setIsSpeaking(false);
+        setPlayingMessageIndex(null);
+        alert("✅ تم تجهيز الصوت المخصص لهذا الرد بنجاح! يمكنك الآن الاستماع إليه فورياً وبدون تقطيع.");
+        return;
+      }
+
       const source = ctx.createBufferSource();
       source.buffer = buffer;
       source.connect(ctx.destination);
@@ -280,90 +331,116 @@ const ConsultSession: React.FC<ConsultSessionProps> = ({ patient, settings, onCl
       setIsSpeaking(true);
       source.start();
     } catch (e) {
-      console.warn("Audio Context player failed, falling back to Web Speech API:", e);
+      console.error("Playback System Failure in ConsultSession:", e);
       if (sessionId !== speechSessionIdRef.current) return;
       setIsAudioLoading(false);
-      setIsSpeaking(true);
-      
-      speakWithWebSpeech(text, sessionId, () => {
-        if (sessionId !== speechSessionIdRef.current) return;
-        setIsSpeaking(false);
-        setPlayingMessageIndex(null);
-      });
+      stopAISpeaking();
+
+      const retryFallback = window.confirm(
+        "واجهنا مشكلة تقنية في تشغيل ملف الصوت. هل ترغب في العودة للقارئ الافتراضي؟"
+      );
+
+      if (retryFallback) {
+        setSelectedVoice('WebSpeech');
+        setTimeout(() => playAIResponse(text, msgIndex), 100);
+      }
     }
   };
 
   const startLiveSession = async () => {
     if (isLiveActive) { stopLiveSession(); return; }
 
-    // Dispatch a global stop audio event to stop other speech players in the app
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('app-stop-all-audio', { detail: { sender: 'ConsultSession' } }));
     }
 
     try {
-      const ai = getAI(settings);
       const inputCtx = new (window.AudioContext || (window as any).webkitAudioContext)({sampleRate: 16000});
       const outputCtx = new (window.AudioContext || (window as any).webkitAudioContext)({sampleRate: 24000});
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       
-      const sessionPromise = ai.live.connect({
-        model: 'gemini-3.8-live',
-        callbacks: {
-          onopen: () => {
-            setIsLiveActive(true);
-            const source = inputCtx.createMediaStreamSource(stream);
-            const scriptProcessor = inputCtx.createScriptProcessor(4096, 1, 1);
-            scriptProcessor.onaudioprocess = (e) => {
-              const inputData = e.inputBuffer.getChannelData(0);
-              const int16 = new Int16Array(inputData.length);
-              for (let i = 0; i < inputData.length; i++) int16[i] = inputData[i] * 32768;
-              sessionPromise.then(s => s.sendRealtimeInput({
-                audio: { data: encode(new Uint8Array(int16.buffer)), mimeType: 'audio/pcm;rate=16000' }
-              }));
-            };
-            source.connect(scriptProcessor);
-            scriptProcessor.connect(inputCtx.destination);
-          },
-          onmessage: async (m: LiveServerMessage) => {
-            const audioData = m.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
-            if (audioData) {
-              nextStartTimeRef.current = Math.max(nextStartTimeRef.current, outputCtx.currentTime);
-              const buffer = await decodeAudioData(decode(audioData), outputCtx, 24000, 1);
-              const source = outputCtx.createBufferSource();
-              source.buffer = buffer;
-              source.connect(outputCtx.destination);
-              source.start(nextStartTimeRef.current);
-              nextStartTimeRef.current += buffer.duration;
-              sourcesRef.current.add(source);
-            }
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = getWebSocketUrl('/api/live-proxy');
+      const ws = new WebSocket(wsUrl);
+
+      ws.onopen = () => {
+        ws.send(JSON.stringify({
+          type: 'setup',
+          settings: settings,
+          config: {
+            responseModalities: [Modality.AUDIO],
+            speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: (selectedVoice && selectedVoice !== 'WebSpeech') ? selectedVoice : 'Puck' } } },
+            systemInstruction: `أنت الآن الطبيب الاستشاري المباشر المشرف على حالة هذا المريض عبر اتصال صوتي.
+            السياق السريري:
+            الاسم: ${patient.name} | العمر: ${patient.age} | الجنس: ${patient.gender}
+            الأعراض: ${patient.symptoms}
+            التشخيص: ${patient.diagnosis?.conditionName}
+            المؤشرات الحيوية: حرارة ${patient.vitals.temperature} | ضغط ${patient.vitals.bloodPressure} | نبض ${patient.vitals.pulse} | أكسجين ${patient.vitals.spo2}
+            
+            تعليمات صارمة:
+            1. تحدث كطبيب بشري خبير في عيادته، وليس كذكاء اصطناعي.
+            2. كن دقيقاً، مهنياً، ومطمئناً في نبرة صوتك.
+            3. اربط إجاباتك دائماً بحالة المريض الحالية وتشخيصه.`
           }
-        },
-        config: {
-          responseModalities: [Modality.AUDIO],
-          speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: (selectedVoice && selectedVoice !== 'WebSpeech') ? selectedVoice : 'Puck' } } },
-          systemInstruction: `أنت الآن الطبيب الاستشاري المباشر المشرف على حالة هذا المريض عبر اتصال صوتي.
-          السياق السريري:
-          الاسم: ${patient.name} | العمر: ${patient.age} | الجنس: ${patient.gender}
-          الأعراض: ${patient.symptoms}
-          التشخيص: ${patient.diagnosis?.conditionName}
-          المؤشرات الحيوية: حرارة ${patient.vitals.temperature} | ضغط ${patient.vitals.bloodPressure} | نبض ${patient.vitals.pulse} | أكسجين ${patient.vitals.spo2}
-          
-          تعليمات صارمة:
-          1. تحدث كطبيب بشري خبير في عيادته، وليس كذكاء اصطناعي.
-          2. كن دقيقاً، مهنياً، ومطمئناً في نبرة صوتك.
-          3. اربط إجاباتك دائماً بحالة المريض الحالية وتشخيصه.`
+        }));
+      };
+
+      ws.onmessage = async (event) => {
+        const msg = JSON.parse(event.data);
+        if (msg.type === 'open') {
+          setIsLiveActive(true);
+          const source = inputCtx.createMediaStreamSource(stream);
+          const scriptProcessor = inputCtx.createScriptProcessor(4096, 1, 1);
+          scriptProcessor.onaudioprocess = (e) => {
+            const inputData = e.inputBuffer.getChannelData(0);
+            const int16 = new Int16Array(inputData.length);
+            for (let i = 0; i < inputData.length; i++) int16[i] = inputData[i] * 32768;
+            if (ws.readyState === WebSocket.OPEN) {
+              ws.send(JSON.stringify({
+                type: 'input',
+                data: {
+                  audio: { data: encode(new Uint8Array(int16.buffer)), mimeType: 'audio/pcm;rate=16000' }
+                }
+              }));
+            }
+          };
+          source.connect(scriptProcessor);
+          scriptProcessor.connect(inputCtx.destination);
+          (ws as any)._scriptProcessor = scriptProcessor;
+          (ws as any)._audioSource = source;
+        } else if (msg.type === 'message') {
+          const audioData = msg.data.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
+          if (audioData) {
+            nextStartTimeRef.current = Math.max(nextStartTimeRef.current, outputCtx.currentTime);
+            const buffer = await decodeAudioData(decode(audioData), outputCtx, 24000, 1);
+            const source = outputCtx.createBufferSource();
+            source.buffer = buffer;
+            source.connect(outputCtx.destination);
+            source.start(nextStartTimeRef.current);
+            nextStartTimeRef.current += buffer.duration;
+            sourcesRef.current.add(source);
+          }
+        } else if (msg.type === 'error') {
+          console.error("Server Live Proxy Error:", msg.message);
+          alert(`فشل الاتصال الصوتي: ${msg.message}`);
+          stopLiveSession();
         }
-      });
-      sessionRef.current = await sessionPromise;
+      };
+
+      ws.onclose = () => {
+        setIsLiveActive(false);
+      };
+
+      sessionRef.current = {
+        close: () => {
+          if ((ws as any)._scriptProcessor) (ws as any)._scriptProcessor.disconnect();
+          if ((ws as any)._audioSource) (ws as any)._audioSource.disconnect();
+          ws.close();
+        }
+      };
     } catch (err: any) {
       console.error("Live Audio Connection Error:", err);
-      const errMsg = err?.message || String(err);
-      if (errMsg === "MISSING_API_KEY" || errMsg.includes("API key")) {
-        alert("فشل الاتصال الصوتي المباشر.\n\nهذا القسم (الاستشارة الصوتية الحية بالزمن الفعلي) يتطلب إدخال مفتاح الـ API الخاص بك في صفحة الإعدادات لتأمين الاتصال المباشر بنموذج Gemini Live API.");
-      } else {
-        alert("فشل الاتصال الصوتي المباشر. يرجى التحقق من اتصال الإنترنت ومن صلاحية مفتاح الـ API الخاص بك في صفحة الإعدادات.");
-      }
+      alert("فشل الاتصال الصوتي المباشر. يرجى التحقق من اتصال الإنترنت.");
     }
   };
 
@@ -453,7 +530,7 @@ const ConsultSession: React.FC<ConsultSessionProps> = ({ patient, settings, onCl
       }
     } catch (e) {
       console.error(e);
-      setStreamingText('عذراً، حدث خطأ أثناء الاتصال السريري. الرجاء التأكد من مفتاح الـ API الخاص بك إذا تم إدخاله.');
+      setStreamingText('عذراً، تعذر الاتصال بالذكاء الاصطناعي. يرجى التأكد من اتصال الإنترنت للمتابعة في الاستشارة السريرية.');
     } finally {
       setIsLoading(false);
     }
@@ -633,13 +710,37 @@ const ConsultSession: React.FC<ConsultSessionProps> = ({ patient, settings, onCl
              {isSpeaking && (
                <button 
                 onClick={stopAISpeaking}
-                className="p-2 lg:p-3 bg-rose-500/10 border border-rose-500/20 text-rose-500 rounded-lg lg:rounded-xl hover:bg-rose-500/20 transition-all flex items-center gap-1.5 shadow-lg"
+                className="p-2 lg:p-3 bg-rose-500/10 border border-rose-500/20 text-rose-500 rounded-lg lg:rounded-xl hover:bg-rose-50/20 transition-all flex items-center gap-1.5 shadow-lg active:scale-95"
                 title="إيقاف صوت المستشار"
                >
                  <Square className="w-3 h-3 fill-current" />
                  <span className="hidden lg:inline text-[9px] font-black uppercase tracking-widest">إيقاف</span>
                </button>
              )}
+
+             {/* Dedicated Preparation Button for Session Audio */}
+             <button 
+               onClick={() => {
+                 if (messages.length > 0) {
+                   const lastModelMsgIndex = [...messages].reverse().findIndex(m => m.role === 'model');
+                   if (lastModelMsgIndex !== -1) {
+                     const actualIndex = messages.length - 1 - lastModelMsgIndex;
+                     playAIResponse(messages[actualIndex].text, actualIndex, true);
+                   } else {
+                     alert("لا توجد رسالة طبية حالية لتجهيزها صوتاً.");
+                   }
+                 } else {
+                   alert("يرجى بدء المحادثة أولاً لتجهيز الصوت.");
+                 }
+               }}
+               disabled={isAudioLoading}
+               className={`p-2 lg:px-4 lg:py-3 rounded-lg lg:rounded-xl transition-all flex items-center gap-2 font-black text-[8px] lg:text-[10px] border shadow-lg active:scale-95 ${isAudioLoading ? 'bg-white/5 border-white/5 text-white/30 cursor-wait' : 'bg-indigo-500/20 hover:bg-indigo-500/30 border-indigo-500/30 text-indigo-100 hover:text-white'}`}
+               title="تحميل وتجهيز الرد الأخير صوتاً"
+             >
+               {isAudioLoading ? <Loader2 className="w-3.5 h-3.5 lg:w-4 lg:h-4 animate-spin" /> : <Download className="w-3.5 h-3.5 lg:w-4 lg:h-4" />}
+               <span className="hidden sm:inline uppercase tracking-widest">{isAudioLoading ? 'جاري التحميل...' : 'تجهيز الصوت'}</span>
+             </button>
+
              <div className="flex items-center gap-1.5 bg-white/5 p-1.5 px-2.5 rounded-lg lg:rounded-xl border border-white/10 shadow-lg">
                <span className="text-xs font-bold text-slate-300 px-1 hidden md:inline">صوت المستشار:</span>
                <select
@@ -658,10 +759,10 @@ const ConsultSession: React.FC<ConsultSessionProps> = ({ patient, settings, onCl
                  <option value="Fenrir" className="bg-slate-900 text-white">د. فواز (جاد سحابي)</option>
                </select>
              </div>
-             <button onClick={() => setShowSidebar(!showSidebar)} className={`p-2 lg:p-3 rounded-lg lg:rounded-xl transition-all border shadow-lg ${showSidebar ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'}`}>
+             <button onClick={() => setShowSidebar(!showSidebar)} className={`p-2 lg:p-3 rounded-lg lg:rounded-xl transition-all border shadow-lg active:scale-95 ${showSidebar ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'}`}>
                 <LayoutPanelLeft className="w-4 h-4 lg:w-5 lg:h-5" />
              </button>
-             <button onClick={startLiveSession} className={`p-2 lg:px-6 lg:py-3 rounded-lg lg:rounded-xl transition-all flex items-center gap-2 font-black text-[8px] lg:text-[11px] group relative overflow-hidden shadow-xl ${isLiveActive ? 'bg-rose-600 text-white' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-600/20'}`}>
+             <button onClick={startLiveSession} className={`p-2 lg:px-6 lg:py-3 rounded-lg lg:rounded-xl transition-all flex items-center gap-2 font-black text-[8px] lg:text-[11px] group relative overflow-hidden shadow-xl active:scale-95 ${isLiveActive ? 'bg-rose-600 text-white' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-600/20'}`}>
                 {isLiveActive ? <MicOff className="w-4 h-4 animate-pulse" /> : <Mic className="w-4 h-4 group-hover:scale-110" />}
                 <span className="hidden sm:inline uppercase tracking-widest">{isLiveActive ? 'إغلاق الجلسة' : 'عيادة مباشرة'}</span>
              </button>

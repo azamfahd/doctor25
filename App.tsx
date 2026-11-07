@@ -371,7 +371,7 @@ const App: React.FC = () => {
       setLastDiagnosedPatient(newRecord);
     } catch (error: any) {
       console.error("Analysis Error:", error);
-      alert("⚠️ حدث خطأ أثناء التحليل. يرجى التأكد من استقرار الإنترنت أو التحقق من صحة مفتاح الـ API.");
+      alert("عذراً، يتطلب التشخيص بالذكاء الاصطناعي اتصالاً بالإنترنت لضمان دقة وصحة النتائج السريرية.");
     } finally {
       setIsAnalyzing(false);
     }
@@ -388,6 +388,7 @@ const App: React.FC = () => {
           onUpdateHistory={(history) => {
              updateRecordInSupabase(activeSessionPatient.id, { chatHistory: history });
           }}
+          onUpdateSettings={updateSettings}
         />
       );
     }
@@ -403,6 +404,7 @@ const App: React.FC = () => {
             setActiveTab('home');
           }} 
           settings={settings}
+          onUpdateSettings={updateSettings}
         />
       );
     }
